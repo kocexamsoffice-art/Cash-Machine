@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>CASH MACHINE — 72HR SURVIVAL SYSTEM</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#060608;--s1:#0e0e12;--s2:#16161c;--s3:#1e1e26;
+  --border:#252530;--border2:#353545;
+  --green:#00ff88;--red:#ff3d00;--yellow:#ffd600;--blue:#4d90ff;
+  --text:#f0f0f0;--muted:#555;--muted2:#888;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;overflow:hidden;}
+#root{height:100%;display:flex;flex-direction:column;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+/* SCANLINES */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,136,.008) 3px,rgba(0,255,136,.008) 4px);}
+
+/* ANIMATIONS */
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,255,136,.5);}50%{box-shadow:0 0 0 7px rgba(0,255,136,0);}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes slideLeft{from{transform:translateX(-100%);}to{transform:translateX(0);}}
+@keyframes toastIn{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* HEADER */
+#app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  height:56px;min-height:56px;padding:0 20px;
+  background:var(--s1);border-bottom:1px solid var(--border);
+  position:relative;z-index:100;flex-shrink:0;gap:12px;
+}
+#app-header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,255,136,.3),transparent);}
+
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:5px;
+  color:var(--green);text-shadow:0 0 18px rgba(0,255,136,.45);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.logo-r{color:var(--red);}
+.logo-badge{font-family:'Space Mono',monospace;font-size:8px;background:rgba(255,61,0,.15);
+  border:1px solid rgba(255,61,0,.3);color:var(--red);padding:2px 5px;border-radius:2px;animation:blink 2s infinite;letter-spacing:1px;}
+
+.timer-box{display:flex;align-items:center;gap:8px;background:var(--s2);
+  border:1px solid rgba(255,61,0,.3);padding:5px 12px;border-radius:4px;flex-shrink:0;}
+.timer-lbl{font-family:'Space Mono',monospace;font-size:8px;color:var(--red);text-transform:uppercase;letter-spacing:2px;}
+.timer-val{font-family:'Space Mono',monospace;font-size:17px;color:var(--red);
+  text-shadow:0 0 10px rgba(255,61,0,.5);letter-spacing:1px;min-width:80px;}
+
+.hdr-rev-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);
+  text-shadow:0 0 12px rgba(0,255,136,.4);line-height:1;}
+.hdr-rev-lbl{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+#menu-btn{display:none;background:none;border:1px solid var(--border);color:var(--text);
+  width:36px;height:36px;border-radius:4px;cursor:pointer;font-size:18px;line-height:1;
+  align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+#menu-btn:hover{border-color:var(--green);color:var(--green);}
+
+.logout-btn{font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;
+  background:none;border:1px solid var(--border);color:var(--muted);padding:5px 10px;
+  border-radius:3px;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* BODY LAYOUT */
+#app-body{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+#sidebar{
+  width:200px;min-width:200px;background:var(--s1);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;
+}
+.nav-divider{height:1px;background:var(--border);margin:5px 0;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 16px;
+  cursor:pointer;transition:all .12s;border-left:2px solid transparent;
+  font-size:13px;font-weight:500;color:#888;user-select:none;
+}
+.nav-item:hover{background:var(--s2);color:var(--text);}
+.nav-item.active{background:rgba(0,255,136,.06);border-left-color:var(--green);color:var(--green);}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+
+.sb-user{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--green),#00ccff);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#000;flex-shrink:0;}
+.sb-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-email{font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Space Mono',monospace;}
+
+.sb-rev{margin-top:auto;padding:14px;border-top:1px solid var(--border);background:var(--s2);}
+.sb-rev-lbl{display:flex;align-items:center;gap:5px;font-family:'Space Mono',monospace;font-size:9px;
+  color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.pulse-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;flex-shrink:0;display:inline-block;}
+.sb-rev-amt{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);
+  text-shadow:0 0 10px rgba(0,255,136,.4);line-height:1;}
+.sb-bar{height:3px;background:var(--border);border-radius:2px;margin:7px 0 4px;overflow:hidden;}
+.sb-fill{height:100%;background:linear-gradient(90deg,var(--green),#00ffcc);border-radius:2px;transition:width .5s;box-shadow:0 0 6px rgba(0,255,136,.4);}
+.sb-pct{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);}
+
+/* MOBILE OVERLAY */
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;}
+#sidebar.mobile-open{position:fixed;top:0;left:0;bottom:0;z-index:201;animation:slideLeft .25s ease;box-shadow:16px 0 40px rgba(0,0,0,.6);}
+
+/* MAIN */
+#main{flex:1;overflow-y:auto;overflow-x:hidden;}
+.panel{padding:20px;animation:fadeUp .3s ease;max-width:1100px;}
+
+/* BOTTOM NAV */
+#bottom-nav{display:none;height:60px;background:var(--s1);border-top:1px solid var(--border);flex-shrink:0;}
+.bn-inner{display:flex;height:100%;}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;color:#555;font-family:'Space Mono',monospace;font-size:7px;
+  letter-spacing:.5px;text-transform:uppercase;transition:color .15s;padding:4px 2px;user-select:none;}
+.bn-item.active{color:var(--green);}
+.bn-item:hover{color:var(--text);}
+.bn-icon{font-size:17px;line-height:1;}
+
+/* AUTH */
+.auth-wrap{min-height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden;}
+.auth-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,136,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.035) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+.auth-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,136,.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.auth-card{width:100%;max-width:400px;background:var(--s1);border:1px solid var(--border2);border-radius:8px;padding:30px;position:relative;z-index:1;animation:fadeUp .4s ease;box-shadow:0 0 60px rgba(0,255,136,.05),0 20px 40px rgba(0,0,0,.4);}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:6px;color:var(--green);text-shadow:0 0 20px rgba(0,255,136,.5);text-align:center;margin-bottom:3px;}
+.auth-logo span{color:var(--red);}
+.auth-tagline{text-align:center;font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:3px;margin-bottom:24px;}
+.auth-tabs-wrap{display:grid;grid-template-columns:1fr 1fr;background:var(--s2);border-radius:5px;padding:3px;margin-bottom:22px;}
+.auth-tab{padding:8px;text-align:center;font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;border-radius:4px;transition:all .2s;color:var(--muted);}
+.auth-tab.active{background:var(--s3);color:var(--green);}
+.auth-form{display:flex;flex-direction:column;gap:13px;}
+.inp-group{display:flex;flex-direction:column;gap:5px;}
+.inp-group label{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+input,select,textarea{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;transition:border .2s;outline:none;-webkit-appearance:none;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(0,255,136,.08);}
+textarea{resize:vertical;min-height:90px;line-height:1.6;}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23666' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;}
+.auth-err{background:rgba(255,61,0,.1);border:1px solid rgba(255,61,0,.3);color:#ffb3a0;padding:9px 13px;border-radius:4px;font-size:12px;line-height:1.5;}
+.auth-ok{background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.25);color:#a0ffd6;padding:9px 13px;border-radius:4px;font-size:12px;}
+.auth-footer{margin-top:14px;text-align:center;font-size:12px;color:var(--muted);}
+.auth-link{color:var(--green);cursor:pointer;text-decoration:underline;}
+
+/* DB SETUP MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:500;padding:16px;backdrop-filter:blur(4px);animation:fadeIn .2s;}
+.modal-box{background:var(--s1);border:1px solid var(--border2);border-radius:8px;padding:26px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 0 50px rgba(0,255,136,.07);animation:fadeUp .3s ease;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:4px;color:var(--green);margin-bottom:5px;}
+.modal-sub{color:var(--muted2);font-size:12px;margin-bottom:16px;line-height:1.6;}
+.sql-block{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:12px;font-family:'Space Mono',monospace;font-size:9px;line-height:1.9;color:#9db8d2;white-space:pre;overflow-x:auto;margin-bottom:14px;max-height:180px;overflow-y:auto;}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border:none;border-radius:4px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;user-select:none;}
+.btn:active{transform:scale(.97);}
+.btn-green{background:var(--green);color:#000;}
+.btn-green:hover{background:#00cc6e;box-shadow:0 0 16px rgba(0,255,136,.3);}
+.btn-green:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted2);}
+.btn-ghost:hover{border-color:var(--green);color:var(--green);}
+.btn-red{background:var(--red);color:#fff;}
+.btn-sm{padding:5px 11px;font-size:9px;}
+.w-full{width:100%;justify-content:center;}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;}
+
+/* PAGE */
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:4px;color:var(--green);text-shadow:0 0 20px rgba(0,255,136,.3);line-height:1;margin-bottom:4px;}
+.page-sub{color:var(--muted2);font-size:12px;margin-bottom:18px;}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:14px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--green);}
+.stat-card.c-red::before{background:var(--red);}
+.stat-card.c-yellow::before{background:var(--yellow);}
+.stat-card.c-blue::before{background:var(--blue);}
+.stat-lbl{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--text);}
+.stat-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--green);margin-top:3px;}
+.stat-sub.neg{color:var(--red);}
+
+/* SECTION HEADING */
+.sec-hd{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;margin-bottom:11px;display:flex;align-items:center;gap:10px;}
+.sec-hd::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* TASKS */
+.task-item{display:flex;align-items:center;gap:11px;background:var(--s1);border:1px solid var(--border);padding:10px 13px;border-radius:5px;margin-bottom:7px;cursor:pointer;transition:all .15s;}
+.task-item:hover{border-color:rgba(0,255,136,.4);background:rgba(0,255,136,.02);}
+.task-item.done{opacity:.38;}
+.task-item.done .task-name{text-decoration:line-through;}
+.task-check{width:17px;height:17px;border:2px solid var(--border2);border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:9px;}
+.task-item.done .task-check{background:var(--green);border-color:var(--green);color:#000;font-weight:900;}
+.task-name{flex:1;font-weight:500;font-size:13px;}
+.badge{font-family:'Space Mono',monospace;font-size:8px;padding:2px 7px;border-radius:2px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.b-red{background:rgba(255,61,0,.15);color:var(--red);border:1px solid rgba(255,61,0,.3);}
+.b-yellow{background:rgba(255,214,0,.12);color:var(--yellow);border:1px solid rgba(255,214,0,.25);}
+.b-green{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.25);}
+.task-earn{font-family:'Space Mono',monospace;font-size:10px;color:var(--green);font-weight:700;min-width:55px;text-align:right;white-space:nowrap;}
+
+/* CARDS */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:15px;}
+.card-title{font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:11px;}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ALERTS */
+.alert{border-radius:5px;padding:10px 13px;font-size:12px;line-height:1.65;margin-bottom:14px;}
+.a-warn{background:rgba(255,61,0,.08);border:1px solid rgba(255,61,0,.25);color:#ffb3a0;}
+.a-info{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:#a0ffd6;}
+.a-blue{background:rgba(77,144,255,.08);border:1px solid rgba(77,144,255,.25);color:#b3cfff;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:8px 16px;font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px;white-space:nowrap;flex-shrink:0;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+
+/* OUTPUT */
+.out-wrap{position:relative;}
+.out-box{background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:13px;font-size:13px;line-height:1.75;color:var(--text);min-height:100px;white-space:pre-wrap;word-break:break-word;font-family:'DM Sans',sans-serif;}
+.out-box.tall{min-height:270px;}
+.copy-btn{position:absolute;top:8px;right:8px;background:var(--s3);border:1px solid var(--border);color:var(--muted2);padding:3px 9px;border-radius:3px;font-size:9px;cursor:pointer;font-family:'Space Mono',monospace;letter-spacing:1px;transition:all .15s;}
+.copy-btn:hover{background:var(--green);color:#000;border-color:var(--green);}
+.placeholder-txt{color:var(--muted);font-style:italic;font-size:12px;}
+.gen-loading{display:flex;align-items:center;gap:8px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;}
+
+/* EARNING ROW */
+.earn-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);}
+.earn-row:last-child{border-bottom:none;}
+.earn-src{font-size:12px;font-weight:500;}
+.earn-time{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);}
+.earn-amt{font-family:'Space Mono',monospace;font-size:12px;color:var(--green);font-weight:700;}
+
+/* PHASE */
+.phase-card{background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:13px;}
+.phase-title{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.phase-item{font-size:11px;color:#ccc;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:7px;}
+.phase-item:last-child{border-bottom:none;}
+.phase-target{margin-top:8px;padding:5px 9px;background:rgba(0,255,136,.06);border-left:2px solid var(--green);font-family:'Space Mono',monospace;font-size:9px;color:var(--green);}
+
+/* TABLE */
+.tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;min-width:480px;}
+th{text-align:left;padding:8px 11px;font-family:'Space Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);background:var(--s2);white-space:nowrap;}
+td{padding:9px 11px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.03);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.01);}
+.status-pill{font-family:'Space Mono',monospace;font-size:8px;padding:2px 7px;border-radius:2px;text-transform:uppercase;letter-spacing:1px;display:inline-block;}
+.sp-pending{background:rgba(255,214,0,.12);color:var(--yellow);}
+.sp-active{background:rgba(0,255,136,.1);color:var(--green);}
+.sp-done{background:rgba(255,255,255,.07);color:var(--muted2);}
+
+/* PLATFORM */
+.plat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.plat-card{background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center;cursor:pointer;transition:all .18s;}
+.plat-card:hover{border-color:rgba(0,255,136,.4);transform:translateY(-2px);}
+.pc-icon{font-size:22px;margin-bottom:6px;}
+.pc-name{font-weight:600;font-size:13px;margin-bottom:3px;}
+.pc-desc{font-size:10px;color:var(--muted);line-height:1.4;}
+.pc-earn{font-family:'Space Mono',monospace;font-size:9px;color:var(--green);margin-top:6px;font-weight:700;}
+.pc-badge{display:inline-block;font-family:'Space Mono',monospace;font-size:8px;padding:2px 6px;border-radius:2px;margin-bottom:4px;background:rgba(255,61,0,.15);color:var(--red);border:1px solid rgba(255,61,0,.25);letter-spacing:1px;text-transform:uppercase;}
+
+/* GUIDE */
+.guide-step{display:flex;gap:14px;padding:14px;background:var(--s1);border:1px solid var(--border);border-radius:5px;margin-bottom:9px;transition:border .15s;}
+.guide-step:hover{border-color:rgba(0,255,136,.25);}
+.step-num{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--green);opacity:.3;line-height:1;min-width:30px;}
+.step-body h3{font-size:13px;font-weight:600;margin-bottom:4px;}
+.step-body p{font-size:11px;color:#aaa;line-height:1.65;}
+.step-time{font-family:'Space Mono',monospace;font-size:9px;color:var(--red);margin-top:4px;}
+
+/* TAGS */
+.tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:13px;}
+.tag{font-family:'Space Mono',monospace;font-size:9px;padding:3px 9px;border-radius:3px;background:var(--s2);color:var(--muted2);border:1px solid var(--border);cursor:pointer;transition:all .12s;}
+.tag:hover{border-color:var(--green);color:var(--green);}
+
+/* DB STATUS */
+.db-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;flex-shrink:0;}
+.db-dot.on{background:var(--green);animation:pulse 2s infinite;}
+.db-dot.err{background:var(--red);}
+
+/* TOAST */
+.toast{position:fixed;bottom:72px;right:16px;z-index:900;background:var(--s1);border:1px solid var(--green);
+  padding:9px 15px;border-radius:5px;font-size:12px;box-shadow:0 0 20px rgba(0,255,136,.12);
+  animation:toastIn .3s ease;display:flex;align-items:center;gap:8px;max-width:280px;}
+.toast.err{border-color:var(--red);}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:14px 0;}
+
+/* FLEX UTILS */
+.flex{display:flex;}.items-c{align-items:center;}.just-b{justify-content:space-between;}.gap4{gap:4px;}.gap6{gap:6px;}.gap8{gap:8px;}.gap10{gap:10px;}.gap12{gap:12px;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}.mt20{margin-top:20px;}
+.mb8{margin-bottom:8px;}.mb12{margin-bottom:12px;}.mb16{margin-bottom:16px;}
+.text-green{color:var(--green);}.text-red{color:var(--red);}.text-muted{color:var(--muted);}
+.fw6{font-weight:600;}.text-xs{font-size:11px;}.text-center{text-align:center;}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .g2,.g3{grid-template-columns:1fr;}
+  .plat-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:768px){
+  #sidebar{display:none;}
+  #sidebar.mobile-open{display:flex;}
+  #bottom-nav{display:block;}
+  #menu-btn{display:flex;}
+  .timer-lbl{display:none;}
+  .timer-val{font-size:14px;min-width:70px;}
+  .logo{font-size:18px;letter-spacing:3px;}
+  .logo-badge{display:none;}
+  .panel{padding:14px;}
+  .page-title{font-size:26px;}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .stat-val{font-size:24px;}
+  .plat-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:480px){
+  #app-header{padding:0 12px;gap:8px;}
+  .timer-box{padding:4px 9px;}
+  .auth-card{padding:22px;}
+  .modal-box{padding:18px;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// ─── WAIT FOR SUPABASE THEN BOOT ──────────────────────────────────────────────
+(function(){
+  'use strict';
+
+  // ── CONSTANTS ──────────────────────────────────────────────────────────────
+  var K={URL:'cm_sb_url',KEY:'cm_sb_key',SESSION:'cm_session',TIMER:'cm_timer',STATE:'cm_state_'};
+  var GOAL=5000;
+  var _sb=null;
+
+  function ls(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v));}catch(e){return null;}}
+  function lsStr(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+  function lsSet(k,v){try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));}catch(e){}}
+  function lsClear(k){try{localStorage.removeItem(k);}catch(e){}}
+
+  function getSB(){return _sb;}
+  function initSB(url,key){
+    if(url&&key&&window.supabase){_sb=window.supabase.createClient(url,key);return _sb;}
+    return null;
+  }
+
+  // ── SHA-256 ─────────────────────────────────────────────────────────────────
+  async function sha256(str){
+    var enc=new TextEncoder().encode(str);
+    var buf=await crypto.subtle.digest('SHA-256',enc);
+    return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }
+
+  // ── TIMER ───────────────────────────────────────────────────────────────────
+  function fmtTime(ms){
+    var r=Math.max(0,ms);
+    var h=Math.floor(r/3600000),m=Math.floor((r%3600000)/60000),s=Math.floor((r%60000)/1000);
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  }
+
+  // ── CLAUDE API ──────────────────────────────────────────────────────────────
+  async function askClaude(prompt,sys){
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:1200,
+        system:sys||'You are an expert freelance business consultant. Be direct, specific, actionable. No filler.',
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    if(!resp.ok)throw new Error('API error '+resp.status);
+    var d=await resp.json();
+    return(d.content||[]).map(function(c){return c.text||'';}).join('');
+  }
+
+  // ── DOM HELPERS ─────────────────────────────────────────────────────────────
+  function el(tag,cls,html,attrs){
+    var e=document.createElement(tag);
+    if(cls)e.className=cls;
+    if(html)e.innerHTML=html;
+    if(attrs)Object.keys(attrs).forEach(function(k){e.setAttribute(k,attrs[k]);});
+    return e;
+  }
+  function div(cls,html){return el('div',cls,html);}
+  function inp(type,placeholder,value){var i=el('input');i.type=type||'text';i.placeholder=placeholder||'';i.value=value||'';return i;}
+  function sel(options,val){
+    var s=document.createElement('select');
+    options.forEach(function(o){var opt=document.createElement('option');opt.value=o.value||o;opt.textContent=o.label||o;if((o.value||o)===val)opt.selected=true;s.appendChild(opt);});
+    return s;
+  }
+  function btn(text,cls,onclick){var b=el('button',cls||'btn btn-ghost',text);if(onclick)b.onclick=onclick;return b;}
+  function $(id){return document.getElementById(id);}
+
+  // ── APP STATE ────────────────────────────────────────────────────────────────
+  var STATE={
+    step:'loading',// loading|dbsetup|auth|app
+    sbReady:false,
+    dbStatus:'disconnected',
+    user:null,
+    page:'dashboard',
+    sidebarOpen:false,
+    revenue:0,
+    earnings:[],
+    orders:[],
+    tasks:[
+      {id:1,name:'Create Stripe + Gumroad accounts',value:'Required',priority:'URGENT',done:false},
+      {id:2,name:'Launch 5 Fiverr gigs (use Product Factory)',value:'$375+',priority:'URGENT',done:false},
+      {id:3,name:'Apply to 10 Upwork jobs (use Proposal Gen)',value:'$500+',priority:'URGENT',done:false},
+      {id:4,name:'Send 20 local business cold emails',value:'$400+',priority:'HIGH',done:false},
+      {id:5,name:'Build & list 3 Gumroad digital products',value:'$300+',priority:'HIGH',done:false},
+      {id:6,name:'Post value content in 5 Reddit communities',value:'$200+',priority:'HIGH',done:false},
+      {id:7,name:'DM 15 Reddit users who need help',value:'$300+',priority:'HIGH',done:false},
+      {id:8,name:'Upsell every paying client',value:'+50%',priority:'MEDIUM',done:false},
+    ],
+    proposals:0,
+    timerStart:0,
+    toast:null,
+    toastTimeout:null,
+  };
+
+  // ── RENDER ───────────────────────────────────────────────────────────────────
+  var root=document.getElementById('root');
+  function render(){
+    root.innerHTML='';
+    if(STATE.step==='loading'){renderLoading();}
+    else if(STATE.step==='dbsetup'){renderDBSetup();}
+    else if(STATE.step==='auth'){renderAuth();}
+    else{renderApp();}
+  }
+
+  // ── LOADING ──────────────────────────────────────────────────────────────────
+  function renderLoading(){
+    root.style.display='flex';root.style.alignItems='center';root.style.justifyContent='center';
+    root.innerHTML='<div style="text-align:center"><div class="auth-logo" style="margin-bottom:16px">CASH<span>MACHINE</span></div><div class="spinner"></div></div>';
+  }
+
+  // ── DB SETUP MODAL ───────────────────────────────────────────────────────────
+  var SQL_SCHEMA=`CREATE TABLE IF NOT EXISTS users (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  email text UNIQUE NOT NULL,
+  password_hash text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS earnings (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  amount numeric NOT NULL, source text NOT NULL DEFAULT 'Unknown',
+  created_at timestamptz DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS orders (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  client text, service text, amount numeric DEFAULT 0,
+  platform text DEFAULT 'Fiverr', deadline text DEFAULT 'ASAP',
+  status text DEFAULT 'pending', notes text DEFAULT '',
+  created_at timestamptz DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS tasks (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  name text, value text DEFAULT '', priority text DEFAULT 'HIGH',
+  done boolean DEFAULT false, sort_order integer DEFAULT 0
+);`;
+
+  function renderDBSetup(){
+    root.style.display='block';root.style.alignItems='';root.style.justifyContent='';
+    var wrap=div('modal-bg');
+    var box=div('modal-box');
+    box.innerHTML='<div class="modal-title">CONNECT DATABASE</div><div class="modal-sub">Enter your Supabase credentials once — they\'re saved permanently to this browser. You\'ll <strong style="color:var(--green)">never need to enter them again</strong>.</div>';
+    var alertBlue=div('alert a-blue mb12');alertBlue.innerHTML='<strong>Step 1:</strong> Go to supabase.com → Your Project → SQL Editor → New Query → paste and run this SQL:';
+    box.appendChild(alertBlue);
+    var sqlBlock=div('sql-block');sqlBlock.textContent=SQL_SCHEMA;box.appendChild(sqlBlock);
+    var alertInfo=div('alert a-info mb16');alertInfo.innerHTML='<strong>Step 2:</strong> Go to Settings → API → copy your Project URL and anon/public key:';
+    box.appendChild(alertInfo);
+    var urlInp=inp('text','https://xxxxxxxxxxxx.supabase.co',lsStr(K.URL));urlInp.className='';urlInp.style.cssText='width:100%;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:9px 12px;color:var(--text);font-family:DM Sans,sans-serif;font-size:13px;outline:none;margin-bottom:10px;';
+    var keyInp=inp('text','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',lsStr(K.KEY));keyInp.style.cssText=urlInp.style.cssText;
+    var g1=div('inp-group mb12');g1.innerHTML='<label>Supabase Project URL</label>';g1.appendChild(urlInp);
+    var g2=div('inp-group mb16');g2.innerHTML='<label>Supabase Anon / Public Key</label>';g2.appendChild(keyInp);
+    box.appendChild(g1);box.appendChild(g2);
+    var errDiv=div('auth-err mb8');errDiv.style.display='none';box.appendChild(errDiv);
+    var btnRow=div('flex gap8');
+    var connectBtn=btn('🔌 CONNECT FOREVER →','btn btn-green w-full');
+    connectBtn.style.flex='1';
+    var skipBtn=btn('SKIP (local only)','btn btn-ghost');
+    connectBtn.onclick=async function(){
+      var url=urlInp.value.trim(),key=keyInp.value.trim();
+      if(!url||!key){errDiv.textContent='Both fields are required.';errDiv.style.display='block';return;}
+      connectBtn.disabled=true;connectBtn.innerHTML='<div class="spinner"></div> TESTING...';
+      try{
+        var client=window.supabase.createClient(url,key);
+        var res=await client.from('users').select('id').limit(1);
+        if(res.error&&res.error.code!=='PGRST116')throw new Error(res.error.message);
+        lsSet(K.URL,url);lsSet(K.KEY,key);
+        initSB(url,key);STATE.sbReady=true;STATE.dbStatus='connected';
+        STATE.step='auth';render();
+      }catch(e){
+        errDiv.textContent='Connection failed: '+e.message+'. Make sure you ran the SQL schema first.';
+        errDiv.style.display='block';
+        connectBtn.disabled=false;connectBtn.innerHTML='🔌 CONNECT FOREVER →';
+      }
+    };
+    skipBtn.onclick=function(){STATE.step='auth';render();};
+    btnRow.appendChild(connectBtn);btnRow.appendChild(skipBtn);
+    box.appendChild(btnRow);
+    var note=div('auth-footer mt12');note.innerHTML='Keys stored in <strong>localStorage</strong> on this device only.';
+    box.appendChild(note);
+    wrap.appendChild(box);root.appendChild(wrap);
+  }
+
+  // ── AUTH ──────────────────────────────────────────────────────────────────────
+  function renderAuth(){
+    root.style.display='block';
+    var wrap=div('auth-wrap');
+    wrap.appendChild(div('auth-grid'));wrap.appendChild(div('auth-glow'));
+    var card=div('auth-card');
+    card.innerHTML='<div class="auth-logo">CASH<span>MACHINE</span></div><div class="auth-tagline">72-Hour Survival System</div>';
+    if(!STATE.sbReady){
+      var warn=div('alert a-warn mb12');warn.innerHTML='⚠️ Running in <strong>local mode</strong> — no Supabase. Accounts save to this browser only.';
+      card.appendChild(warn);
+    }
+    // Tabs
+    var tabWrap=div('auth-tabs-wrap');
+    var loginTab=div('auth-tab active');loginTab.textContent='Login';
+    var regTab=div('auth-tab');regTab.textContent='Register';
+    tabWrap.appendChild(loginTab);tabWrap.appendChild(regTab);
+    card.appendChild(tabWrap);
+    var formWrap=div('auth-form');card.appendChild(formWrap);
+    var errDiv=div('auth-err');errDiv.style.display='none';
+    var okDiv=div('auth-ok');okDiv.style.display='none';
+    var mode='login';
+    function buildForm(){
+      formWrap.innerHTML='';
+      errDiv.style.display='none';okDiv.style.display='none';
+      if(mode==='register'){
+        var ng=div('inp-group');ng.innerHTML='<label>Full Name</label>';
+        var nameInp=inp('text','John Doe');nameInp.id='a-name';ng.appendChild(nameInp);formWrap.appendChild(ng);
+      }
+      var eg=div('inp-group');eg.innerHTML='<label>Email Address</label>';
+      var emailInp=inp('email','you@example.com');emailInp.id='a-email';eg.appendChild(emailInp);formWrap.appendChild(eg);
+      var pg=div('inp-group');pg.innerHTML='<label>Password</label>';
+      var pwInp=inp('password',mode==='register'?'Min. 6 characters':'Your password');pwInp.id='a-pw';pg.appendChild(pwInp);formWrap.appendChild(pg);
+      if(mode==='register'){
+        var p2g=div('inp-group');p2g.innerHTML='<label>Confirm Password</label>';
+        var pw2Inp=inp('password','Repeat password');pw2Inp.id='a-pw2';p2g.appendChild(pw2Inp);formWrap.appendChild(p2g);
+      }
+      formWrap.appendChild(errDiv);formWrap.appendChild(okDiv);
+      var submitBtn=btn(mode==='register'?'CREATE ACCOUNT →':'LOGIN →','btn btn-green w-full');
+      submitBtn.style.padding='12px';
+      submitBtn.onclick=handleSubmit;
+      formWrap.appendChild(submitBtn);
+      var footerDiv=div('auth-footer');
+      footerDiv.innerHTML=mode==='login'?'No account? <span class="auth-link" id="switch-link">Register free</span>':'Already have an account? <span class="auth-link" id="switch-link">Login</span>';
+      formWrap.appendChild(footerDiv);
+      var modeNote=div('auth-footer mt8');modeNote.style.fontSize='11px';modeNote.style.color='var(--muted)';
+      modeNote.textContent='Credentials verified against '+(STATE.sbReady?'Supabase database':'local browser storage')+'.';
+      formWrap.appendChild(modeNote);
+      document.addEventListener('click',function handler(e){if(e.target.id==='switch-link'){mode=mode==='login'?'register':'login';loginTab.classList.toggle('active',mode==='login');regTab.classList.toggle('active',mode==='register');buildForm();document.removeEventListener('click',handler);}});
+    }
+    loginTab.onclick=function(){mode='login';loginTab.classList.add('active');regTab.classList.remove('active');buildForm();};
+    regTab.onclick=function(){mode='register';regTab.classList.add('active');loginTab.classList.remove('active');buildForm();};
+    async function handleSubmit(){
+      var emailVal=($('a-email')||{value:''}).value.trim();
+      var pwVal=($('a-pw')||{value:''}).value;
+      errDiv.style.display='none';okDiv.style.display='none';
+      if(!emailVal.includes('@')){errDiv.textContent='Enter a valid email.';errDiv.style.display='block';return;}
+      if(pwVal.length<6){errDiv.textContent='Password must be at least 6 characters.';errDiv.style.display='block';return;}
+      var submitBtn=formWrap.querySelector('.btn-green');
+      submitBtn.disabled=true;submitBtn.innerHTML='<div class="spinner"></div> '+( mode==='register'?'CREATING...':'LOGGING IN...');
+      try{
+        var hash=await sha256(pwVal);
+        if(!STATE.sbReady){
+          // Local mode
+          var users=ls('cm_users')||[];
+          if(mode==='register'){
+            var nameVal=($('a-name')||{value:''}).value.trim();
+            var pw2Val=($('a-pw2')||{value:''}).value;
+            if(!nameVal){errDiv.textContent='Please enter your name.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='CREATE ACCOUNT →';return;}
+            if(pwVal!==pw2Val){errDiv.textContent='Passwords do not match.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='CREATE ACCOUNT →';return;}
+            if(users.find(function(u){return u.email===emailVal;})){errDiv.textContent='Email already registered.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='CREATE ACCOUNT →';return;}
+            var newUser={id:'local_'+Date.now(),name:nameVal,email:emailVal,password_hash:hash};
+            ls('cm_users',[...users,newUser]);
+            doLogin(newUser);
+          }else{
+            var found=users.find(function(u){return u.email===emailVal;});
+            if(!found){errDiv.textContent='No account found with that email.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='LOGIN →';return;}
+            if(found.password_hash!==hash){errDiv.textContent='Incorrect password.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='LOGIN →';return;}
+            doLogin(found);
+          }
+        }else{
+          var sb=getSB();
+          if(mode==='register'){
+            var nameVal2=($('a-name')||{value:''}).value.trim();
+            var pw2Val2=($('a-pw2')||{value:''}).value;
+            if(!nameVal2){errDiv.textContent='Please enter your name.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='CREATE ACCOUNT →';return;}
+            if(pwVal!==pw2Val2){errDiv.textContent='Passwords do not match.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='CREATE ACCOUNT →';return;}
+            var chk=await sb.from('users').select('id').eq('email',emailVal).single();
+            if(chk.data){errDiv.textContent='Email already registered. Please login.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='CREATE ACCOUNT →';return;}
+            var ins=await sb.from('users').insert({name:nameVal2,email:emailVal.toLowerCase(),password_hash:hash}).select().single();
+            if(ins.error)throw new Error(ins.error.message);
+            // Seed tasks
+            var seeds=STATE.tasks.map(function(t,i){return{user_id:ins.data.id,name:t.name,value:t.value,priority:t.priority,done:false,sort_order:i};});
+            await sb.from('tasks').insert(seeds);
+            okDiv.textContent='Account created! Logging you in...';okDiv.style.display='block';
+            setTimeout(function(){doLogin(ins.data);},700);
+          }else{
+            var loginRes=await sb.from('users').select('*').eq('email',emailVal.toLowerCase()).single();
+            if(loginRes.error||!loginRes.data){errDiv.textContent='No account found with that email.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='LOGIN →';return;}
+            if(loginRes.data.password_hash!==hash){errDiv.textContent='Incorrect password.';errDiv.style.display='block';submitBtn.disabled=false;submitBtn.textContent='LOGIN →';return;}
+            doLogin(loginRes.data);
+          }
+        }
+      }catch(e){errDiv.textContent='Error: '+e.message;errDiv.style.display='block';if(submitBtn)submitBtn.disabled=false;}
+    }
+    buildForm();
+    wrap.appendChild(card);root.appendChild(wrap);
+  }
+
+  function doLogin(userData){
+    var session={userId:userData.id,email:userData.email,name:userData.name||userData.email};
+    STATE.user=session;lsSet(K.SESSION,session);
+    loadUserData(userData.id);
+    STATE.step='app';render();
+    showToast('Welcome, '+session.name+'!');
+  }
+
+  async function loadUserData(userId){
+    var saved=ls(K.STATE+userId);
+    if(saved){
+      if(saved.revenue!=null)STATE.revenue=saved.revenue;
+      if(saved.earnings)STATE.earnings=saved.earnings;
+      if(saved.orders)STATE.orders=saved.orders;
+      if(saved.tasks)STATE.tasks=saved.tasks;
+      if(saved.proposals!=null)STATE.proposals=saved.proposals;
+    }
+    var sb=getSB();if(!sb)return;
+    try{
+      var er=await sb.from('earnings').select('*').eq('user_id',userId).order('created_at',{ascending:false}).limit(50);
+      if(er.data&&er.data.length){
+        STATE.earnings=er.data.map(function(x){return{...x,time:new Date(x.created_at).toLocaleTimeString()};});
+        STATE.revenue=STATE.earnings.reduce(function(s,x){return s+Number(x.amount);},0);
+      }
+      var or=await sb.from('orders').select('*').eq('user_id',userId).order('created_at',{ascending:false});
+      if(or.data)STATE.orders=or.data;
+      var tr=await sb.from('tasks').select('*').eq('user_id',userId).order('sort_order');
+      if(tr.data&&tr.data.length)STATE.tasks=tr.data;
+    }catch(e){console.warn('DB load:',e);}
+    if(STATE.step==='app')renderAppContent();
+  }
+
+  function persistLocal(){
+    if(!STATE.user)return;
+    lsSet(K.STATE+STATE.user.userId,{revenue:STATE.revenue,earnings:STATE.earnings,orders:STATE.orders,tasks:STATE.tasks,proposals:STATE.proposals});
+  }
+
+  // ── TOAST ────────────────────────────────────────────────────────────────────
+  function showToast(msg,isErr){
+    if(STATE.toastTimeout)clearTimeout(STATE.toastTimeout);
+    var existing=$(  'cm-toast');if(existing)existing.remove();
+    var t=div('toast'+(isErr?' err':''));
+    t.id='cm-toast';
+    t.innerHTML=(isErr?'❌ ':'✅ ')+msg;
+    document.body.appendChild(t);
+    STATE.toastTimeout=setTimeout(function(){var el=$(  'cm-toast');if(el)el.remove();},3200);
+  }
+
+  // ── MAIN APP RENDER ───────────────────────────────────────────────────────────
+  function renderApp(){
+    root.style.display='flex';root.style.flexDirection='column';
+    root.innerHTML='';
+
+    // Header
+    var hdr=div('','');hdr.id='app-header';
+    var leftSide=div('flex items-c gap10');
+    var menuBtn=el('button','','☰');menuBtn.id='menu-btn';menuBtn.onclick=function(){STATE.sidebarOpen=!STATE.sidebarOpen;toggleSidebar();};
+    var logo=div('logo','CASH<span class="logo-r">MACHINE</span><span class="logo-badge">LIVE</span>');
+    leftSide.appendChild(menuBtn);leftSide.appendChild(logo);
+    var timerBox=div('timer-box');
+    var timerLbl=div('timer-lbl','TIME LEFT');
+    var timerValEl=div('timer-val',fmtTime(72*3600000-(Date.now()-STATE.timerStart)));
+    timerValEl.id='timer-val';timerBox.appendChild(timerLbl);timerBox.appendChild(timerValEl);
+    var hdrRight=div('flex items-c gap10');
+    var revWrap=div('');
+    var revLbl=div('hdr-rev-lbl','Earned');revLbl.id='hdr-rev-lbl';
+    var revAmt=div('hdr-rev-val','$'+STATE.revenue.toLocaleString());revAmt.id='hdr-rev-amt';
+    revWrap.appendChild(revLbl);revWrap.appendChild(revAmt);
+    var logoutBtn=el('button','logout-btn','LOGOUT');logoutBtn.onclick=handleLogout;
+    hdrRight.appendChild(revWrap);hdrRight.appendChild(logoutBtn);
+    hdr.appendChild(leftSide);hdr.appendChild(timerBox);hdr.appendChild(hdrRight);
+
+    // Body
+    var body=div('','');body.id='app-body';
+    // Sidebar
+    var sb=buildSidebar();sb.id='sidebar';
+    // Overlay
+    var overlay=div('','');overlay.id='sidebar-overlay';overlay.onclick=function(){STATE.sidebarOpen=false;toggleSidebar();};
+    // Main
+    var mainEl=div('','');mainEl.id='main';
+    body.appendChild(overlay);body.appendChild(sb);body.appendChild(mainEl);
+
+    // Bottom nav
+    var bnav=div('','');bnav.id='bottom-nav';
+    var bnInner=div('bn-inner');
+    [{id:'dashboard',icon:'⚡',label:'Dash'},{id:'proposals',icon:'📝',label:'Propose'},{id:'products',icon:'📦',label:'Products'},{id:'outreach',icon:'📡',label:'Outreach'},{id:'orders',icon:'📋',label:'Orders'}].forEach(function(item){
+      var bi=div('bn-item'+(STATE.page===item.id?' active':''));
+      bi.innerHTML='<div class="bn-icon">'+item.icon+'</div><div>'+item.label+'</div>';
+      bi.onclick=function(){navigateTo(item.id);};bnInner.appendChild(bi);
+    });
+    bnav.appendChild(bnInner);
+
+    root.appendChild(hdr);root.appendChild(body);root.appendChild(bnav);
+
+    // Timer tick
+    setInterval(function(){
+      var el2=document.getElementById('timer-val');
+      if(el2)el2.textContent=fmtTime(72*3600000-(Date.now()-STATE.timerStart));
+    },1000);
+
+    renderAppContent();
+  }
+
+  function buildSidebar(){
+    var sb=document.createElement('div');
+    if(STATE.user){
+      var user=div('sb-user');
+      user.innerHTML='<div class="sb-avatar">'+((STATE.user.name||STATE.user.email||'U')[0].toUpperCase())+'</div><div><div class="sb-name">'+escape(STATE.user.name||'User')+'</div><div class="sb-email">'+escape(STATE.user.email)+'</div></div>';
+      sb.appendChild(user);
+    }
+    var navItems=[
+      {id:'dashboard',icon:'⚡',label:'Dashboard'},
+      {id:'guide',icon:'🗺️',label:'Survival Guide'},
+      'divider',
+      {id:'proposals',icon:'📝',label:'Proposal Gen'},
+      {id:'products',icon:'📦',label:'Product Factory'},
+      {id:'outreach',icon:'📡',label:'Outreach Engine'},
+      {id:'content',icon:'🎯',label:'Content Scheduler'},
+      'divider',
+      {id:'orders',icon:'📋',label:'Order Tracker'},
+      {id:'platforms',icon:'🌐',label:'Platforms'},
+    ];
+    navItems.forEach(function(item){
+      if(item==='divider'){sb.appendChild(div('nav-divider'));return;}
+      var ni=div('nav-item'+(STATE.page===item.id?' active':''));
+      ni.innerHTML='<span class="nav-icon">'+item.icon+'</span><span>'+item.label+'</span>';
+      ni.onclick=function(){navigateTo(item.id);};sb.appendChild(ni);
+    });
+    var sbRev=div('sb-rev');
+    var pct=Math.min(100,(STATE.revenue/GOAL)*100);
+    sbRev.innerHTML='<div class="sb-rev-lbl"><span class="pulse-dot"></span>&nbsp;Revenue</div><div class="sb-rev-amt" id="sb-rev-amt">$'+STATE.revenue.toLocaleString()+'</div><div class="sb-bar"><div class="sb-fill" id="sb-fill" style="width:'+pct+'%"></div></div><div class="sb-pct" id="sb-pct">$'+STATE.revenue.toLocaleString()+' / $5,000 ('+Math.round(pct)+'%)</div>';
+    sb.appendChild(sbRev);
+    return sb;
+  }
+
+  function toggleSidebar(){
+    var sb=document.getElementById('sidebar');var ov=document.getElementById('sidebar-overlay');
+    if(sb){sb.classList.toggle('mobile-open',STATE.sidebarOpen);}
+    if(ov){ov.style.display=STATE.sidebarOpen?'block':'none';}
+  }
+
+  function navigateTo(page){
+    STATE.page=page;STATE.sidebarOpen=false;toggleSidebar();renderAppContent();
+    // Update active states
+    document.querySelectorAll('.nav-item').forEach(function(ni){ni.classList.remove('active');});
+    document.querySelectorAll('.bn-item').forEach(function(bi){bi.classList.remove('active');});
+    document.querySelectorAll('.nav-item').forEach(function(ni){if(ni.textContent.toLowerCase().includes(page.toLowerCase().replace('guide','guide').replace('proposals','proposal').replace('products','product').replace('outreach','outreach').replace('content','content').replace('orders','order').replace('platforms','platform').replace('dashboard','dashboard')))ni.classList.add('active');});
+  }
+
+  function updateRevUI(){
+    var pct=Math.min(100,(STATE.revenue/GOAL)*100);
+    var e1=document.getElementById('hdr-rev-amt');if(e1)e1.textContent='$'+STATE.revenue.toLocaleString();
+    var e2=document.getElementById('sb-rev-amt');if(e2)e2.textContent='$'+STATE.revenue.toLocaleString();
+    var e3=document.getElementById('sb-fill');if(e3)e3.style.width=pct+'%';
+    var e4=document.getElementById('sb-pct');if(e4)e4.textContent='$'+STATE.revenue.toLocaleString()+' / $5,000 ('+Math.round(pct)+'%)';
+    var e5=document.getElementById('stat-earned');if(e5)e5.textContent='$'+STATE.revenue.toLocaleString();
+    var e6=document.getElementById('stat-needed');if(e6)e6.textContent='$'+Math.max(0,GOAL-STATE.revenue).toLocaleString();
+    var e7=document.getElementById('stat-proposals');if(e7)e7.textContent=STATE.proposals;
+    var activeOrders=STATE.orders.filter(function(o){return o.status==='active';}).length;
+    var e8=document.getElementById('stat-orders');if(e8)e8.textContent=activeOrders;
+  }
+
+  function handleLogout(){
+    lsClear(K.SESSION);
+    STATE.user=null;STATE.step='auth';STATE.revenue=0;STATE.earnings=[];STATE.orders=[];STATE.proposals=0;
+    STATE.tasks=[{id:1,name:'Create Stripe + Gumroad accounts',value:'Required',priority:'URGENT',done:false},{id:2,name:'Launch 5 Fiverr gigs',value:'$375+',priority:'URGENT',done:false},{id:3,name:'Apply to 10 Upwork jobs',value:'$500+',priority:'URGENT',done:false},{id:4,name:'Send 20 cold emails',value:'$400+',priority:'HIGH',done:false},{id:5,name:'Build 3 Gumroad products',value:'$300+',priority:'HIGH',done:false},{id:6,name:'Post in 5 Reddit communities',value:'$200+',priority:'HIGH',done:false},{id:7,name:'DM 15 Reddit users',value:'$300+',priority:'HIGH',done:false},{id:8,name:'Upsell every client',value:'+50%',priority:'MEDIUM',done:false}];
+    render();
+  }
+
+  function escape(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  // ── PAGE RENDERERS ───────────────────────────────────────────────────────────
+  function renderAppContent(){
+    var mainEl=document.getElementById('main');if(!mainEl)return;
+    mainEl.innerHTML='';
+    switch(STATE.page){
+      case 'dashboard':mainEl.appendChild(buildDashboard());break;
+      case 'guide':mainEl.appendChild(buildGuide());break;
+      case 'proposals':mainEl.appendChild(buildProposals());break;
+      case 'products':mainEl.appendChild(buildProducts());break;
+      case 'outreach':mainEl.appendChild(buildOutreach());break;
+      case 'content':mainEl.appendChild(buildContent());break;
+      case 'orders':mainEl.appendChild(buildOrders());break;
+      case 'platforms':mainEl.appendChild(buildPlatforms());break;
+    }
+  }
+
+  // ── DASHBOARD ────────────────────────────────────────────────────────────────
+  function buildDashboard(){
+    var p=div('panel');
+    var pct=Math.min(100,(STATE.revenue/GOAL)*100);
+    var needed=Math.max(0,GOAL-STATE.revenue);
+    var activeOrders=STATE.orders.filter(function(o){return o.status==='active';}).length;
+
+    // Header row
+    var hRow=div('flex items-c just-b mb12');
+    hRow.innerHTML='<div><div class="page-title">COMMAND CENTER</div><div class="page-sub">Track every dollar. Execute every task. Nothing slips.</div></div>';
+    var dbBadge=div('flex items-c gap6');
+    dbBadge.innerHTML='<div class="db-dot '+(STATE.dbStatus==='connected'?'on':STATE.dbStatus==='error'?'err':'')+'" style="display:inline-block"></div><span style="font-family:Space Mono,monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">'+(STATE.dbStatus==='connected'?'Supabase Live':STATE.dbStatus==='error'?'DB Error':'Local Mode')+'</span>';
+    hRow.appendChild(dbBadge);p.appendChild(hRow);
+
+    // Stats
+    var sg=div('stat-grid');
+    sg.innerHTML='<div class="stat-card"><div class="stat-lbl">Total Earned</div><div class="stat-val" id="stat-earned">$'+STATE.revenue.toLocaleString()+'</div><div class="stat-sub">Goal: $5,000</div></div><div class="stat-card c-red"><div class="stat-lbl">Still Needed</div><div class="stat-val" id="stat-needed">$'+needed.toLocaleString()+'</div><div class="stat-sub neg">Remaining</div></div><div class="stat-card c-yellow"><div class="stat-lbl">Active Orders</div><div class="stat-val" id="stat-orders">'+activeOrders+'</div><div class="stat-sub" style="color:var(--yellow)">In progress</div></div><div class="stat-card c-blue"><div class="stat-lbl">Proposals</div><div class="stat-val" id="stat-proposals">'+STATE.proposals+'</div><div class="stat-sub" style="color:var(--blue)">Sent today</div></div>';
+    p.appendChild(sg);
+
+    // Two col
+    var tc=div('g2 mb20');
+
+    // Log payment
+    var lc=div('');
+    lc.innerHTML='<div class="sec-hd">💰 LOG PAYMENT</div>';
+    var card=div('card');
+    var iRow=div('');iRow.style.cssText='display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;';
+    var ag=div('inp-group');ag.innerHTML='<label>Amount ($)</label>';var amtInp=inp('number','150');ag.appendChild(amtInp);
+    var sg2=div('inp-group');sg2.innerHTML='<label>Source</label>';var srcInp=inp('text','Fiverr, Upwork...');sg2.appendChild(srcInp);
+    var logBtn=btn('+ LOG','btn btn-green');logBtn.style.height='38px';
+    logBtn.onclick=async function(){
+      var amt=parseFloat(amtInp.value);var src=srcInp.value||'Direct';
+      if(isNaN(amt)||amt<=0)return;
+      var entry={id:Date.now(),amount:amt,source:src,time:new Date().toLocaleTimeString(),created_at:new Date().toISOString()};
+      STATE.earnings.unshift(entry);STATE.revenue+=amt;persistLocal();updateRevUI();
+      amtInp.value='';srcInp.value='';showToast('+$'+amt+' from '+src+'!');
+      renderEarningsList(earnList);
+      var sb2=getSB();if(sb2&&STATE.user)await sb2.from('earnings').insert({amount:amt,source:src,user_id:STATE.user.userId}).catch(function(){});
+    };
+    iRow.appendChild(ag);iRow.appendChild(sg2);iRow.appendChild(logBtn);
+    card.appendChild(iRow);
+    var earnList=div('mt12');renderEarningsList(earnList);card.appendChild(earnList);
+    lc.appendChild(card);tc.appendChild(lc);
+
+    // Battle plan
+    var bc=div('');bc.innerHTML='<div class="sec-hd">🕐 BATTLE PLAN</div>';
+    var phases=[
+      {t:'Phase 1 — Hours 0-24',items:['Create all platform accounts','Launch 5 Fiverr gigs','Send 10 Upwork proposals','DM 10 Reddit users'],target:'$300–$800'},
+      {t:'Phase 2 — Hours 24-48',items:['Build 3 Gumroad products','Local business blitz x20','Post in 10 communities','Deliver Phase 1 orders'],target:'$1,000–$2,500'},
+      {t:'Phase 3 — Hours 48-72',items:['Double down on winners','Upsell every client','Sell your playbook'],target:'$1,500–$2,500'},
+    ];
+    var phaseWrap=div('');phaseWrap.style.cssText='display:flex;flex-direction:column;gap:8px;';
+    phases.forEach(function(ph){
+      var pc2=div('phase-card');
+      pc2.innerHTML='<div class="phase-title">'+ph.t+'</div>'+ph.items.map(function(i){return'<div class="phase-item"><span class="text-green">✓</span>'+i+'</div>';}).join('')+'<div class="phase-target">TARGET: '+ph.target+'</div>';
+      phaseWrap.appendChild(pc2);
+    });
+    bc.appendChild(phaseWrap);tc.appendChild(bc);
+    p.appendChild(tc);
+
+    // Tasks
+    p.appendChild(div('sec-hd','⚡ PRIORITY QUEUE'));
+    STATE.tasks.forEach(function(t,i){
+      var ti=div('task-item'+(t.done?' done':''));
+      ti.innerHTML='<div class="task-check">'+(t.done?'✓':'')+'</div><div class="task-name">'+escape(t.name)+'</div><div class="badge '+(t.priority==='URGENT'?'b-red':t.priority==='HIGH'?'b-yellow':'b-green')+'">'+t.priority+'</div><div class="task-earn">'+escape(t.value)+'</div>';
+      ti.onclick=async function(){
+        t.done=!t.done;persistLocal();
+        ti.classList.toggle('done',t.done);
+        ti.querySelector('.task-check').textContent=t.done?'✓':'';
+        var sb2=getSB();if(sb2&&t.id&&String(t.id).length>5)await sb2.from('tasks').update({done:t.done}).eq('id',t.id).catch(function(){});
+      };
+      p.appendChild(ti);
+    });
+    return p;
+  }
+
+  function renderEarningsList(container){
+    container.innerHTML='';
+    var recent=STATE.earnings.slice(0,6);
+    if(!recent.length){container.innerHTML='<div style="color:var(--muted);font-family:Space Mono,monospace;font-size:10px;text-align:center;padding:12px 0">No payments logged yet</div>';return;}
+    recent.forEach(function(e){
+      var row=div('earn-row');
+      row.innerHTML='<div><div class="earn-src">'+escape(e.source)+'</div><div class="earn-time">'+(e.time||'')+'</div></div><div class="earn-amt">+$'+Number(e.amount).toLocaleString()+'</div>';
+      container.appendChild(row);
+    });
+  }
+
+  // ── GUIDE ────────────────────────────────────────────────────────────────────
+  function buildGuide(){
+    var p=div('panel');
+    p.innerHTML='<div class="page-title">SURVIVAL GUIDE</div><div class="page-sub">Every step. Every minute. No excuses.</div><div class="alert a-warn mb16">⚠️ <strong>Critical Rule:</strong> Speed beats perfection. A $75 gig delivered in 4 hours beats a $500 gig you never finish. Spend 60% of your time on outreach.</div>';
+    var tabs=['Setup','Sprint','Scale','Close','Tips'];
+    var contents=[
+      [{n:'01',t:'Create Stripe (FIRST)',b:'stripe.com → sign up → verify identity → add bank account. This is your payment processor — without it you cannot receive money. Do this before opening anything else.',time:'15 min'},{n:'02',t:'Create Gumroad',b:'gumroad.com → sign up → auto-links to Stripe. Sell digital products instantly with no approval needed. Payments hit Stripe same day.',time:'5 min'},{n:'03',t:'Create Fiverr',b:'Complete your profile 100%, add headshot, list skills: copywriting, content writing, consulting, design. Use Product Factory to generate gig descriptions. Full profile converts 4x better.',time:'20 min'},{n:'04',t:'Create Upwork',b:'Complete profile → set rate $35-55/hr → get identity verified immediately. Upwork has a review queue — start NOW. Use Proposal Gen to write your bio.',time:'30 min'},{n:'05',t:'Set Up Reddit',b:'Join: r/entrepreneur, r/startups, r/smallbusiness, r/marketing, r/freelance, r/forhire, r/sidehustle. Search each for "need help with" or "struggling with" to find buyers.',time:'10 min'}],
+      [{n:'01',t:'Launch 5 Fiverr Gigs',b:'Product Factory → Fiverr Gig → generate 5 descriptions. Best: (1) Landing page copy $75 (2) LinkedIn rewrite $65 (3) Email sequence $90 (4) Notion dashboard $50 (5) Social media pack $70. Each needs one sample — AI builds it in 10 minutes.',time:'2-3 hours'},{n:'02',t:'Apply to 10 Upwork Jobs',b:'Filter: Today, Fixed price, $50-$500. Proposal Generator → paste job → get custom proposal → send. Under 2 minutes per application. More proposals = more money.',time:'45 min'},{n:'03',t:'Reddit Outreach Sprint',b:'Find 10 people with problems in subreddits. DM them using Outreach Engine. Reference their exact post. Offer a micro-sample in the DM itself. 10-20% reply rate.',time:'1 hour'}],
+      [{n:'01',t:'Build 3 Gumroad Products',b:'Product Factory → Prompt Pack: pick Real Estate Agents → 50 prompts → export to Google Docs → PDF → list at $27. Template: Notion CRM → build → $29. Guide: "How I use AI to [do X]" → $37.',time:'3 hours'},{n:'02',t:'Community Distribution',b:'Content Scheduler → generate value posts → post in r/entrepreneur, r/realestate, niche Facebook groups. VALUE first, product mention at the very end as a footnote. One viral post = 10-50 sales.',time:'1 hour'},{n:'03',t:'Local Business Blitz',b:'Outreach Engine → Local Business → generate emails for 20 businesses on Google Maps. Target: no posts in 3+ months, unanswered reviews, incomplete profiles. Offer: $200 for 30 days content + profile fix, delivered in 24hrs.',time:'2 hours'}],
+      [{n:'01',t:'Double Down on Winners',b:'Whatever made money — do MORE of it. Don\'t try new experiments. If Upwork is converting, send 20 more proposals. If a Reddit post drove sales, write 3 more posts. Focus is the multiplier.',time:'Ongoing'},{n:'02',t:'Upsell Every Client',b:'Every buyer gets an upsell offer. Delivered landing page copy? Offer email sequence for $150 more. Built Notion dashboard? Offer training call at $75. Existing clients are 10x easier to sell than new ones.',time:'30 min'},{n:'03',t:'Sell Your Playbook',b:'By hour 60 you have a working system. Document it. Product Factory → Guide → "How I made $X in 72hrs with AI". Price: $27. Post authentically in r/sidehustle. This is pure margin — you already lived it.',time:'1 hour'}],
+      [{n:'💡',t:'The $200 Local Business Offer',b:'"I noticed your Google Business listing has no posts and 3 unanswered reviews. I\'ll fix that and write 30 days of content for $200, delivered tomorrow." Takes 20 minutes with AI. Specific + urgent + priced as an easy yes.'},{n:'💡',t:'The Winning Proposal Formula',b:'(1) Name their exact problem. (2) Your specific solution. (3) A micro-sample right in the message. (4) Under 180 words. Proposal Generator does all four automatically. Never send generic.'},{n:'💡',t:'Deliver Faster Than Promised',b:'Promise 24hrs → deliver in 4hrs. With AI you can. This gets 5-star reviews which snowball into more orders. Speed is your unfair advantage over established freelancers with backlogs.'},{n:'💡',t:'3-Tier Fiverr Pricing',b:'Basic ($50) / Standard ($120) / Premium ($250). Most buyers choose the middle tier. You earn more without doing more work. Use round numbers — $75 feels more legitimate than $73.'}],
+    ];
+    var activeTab=0;
+    var tabsDiv=div('tabs');
+    var contentDiv=div('');
+    tabs.forEach(function(tLabel,i){
+      var t=div('tab'+(i===0?' active':''));t.textContent=tLabel;
+      t.onclick=function(){
+        activeTab=i;
+        document.querySelectorAll('#guide-tabs .tab').forEach(function(tb){tb.classList.remove('active');});
+        t.classList.add('active');
+        renderGuideContent();
+      };
+      tabsDiv.appendChild(t);
+    });
+    tabsDiv.id='guide-tabs';p.appendChild(tabsDiv);p.appendChild(contentDiv);
+    function renderGuideContent(){
+      contentDiv.innerHTML='';
+      contents[activeTab].forEach(function(s){
+        var step=div('guide-step');
+        step.innerHTML='<div class="step-num">'+s.n+'</div><div class="step-body"><h3>'+s.t+'</h3><p>'+s.b+'</p>'+(s.time?'<div class="step-time">⏱ '+s.time+'</div>':'')+'</div>';
+        contentDiv.appendChild(step);
+      });
+    }
+    renderGuideContent();
+    return p;
+  }
+
+  // ── AI TOOL BUILDER ───────────────────────────────────────────────────────────
+  function buildAITool(p,prompt,sys,outputId,btnText){
+    var generateBtn=btn(btnText||'⚡ GENERATE','btn btn-green');
+    var outWrap=div('out-wrap mt12');
+    var outBox=div('out-box tall');outBox.id=outputId||'ai-out';outBox.innerHTML='<span class="placeholder-txt">Output will appear here...</span>';
+    var copyBtn2=el('button','copy-btn','COPY');copyBtn2.style.display='none';
+    copyBtn2.onclick=function(){
+      var txt=outBox.textContent;
+      navigator.clipboard.writeText(txt).then(function(){copyBtn2.textContent='COPIED!';setTimeout(function(){copyBtn2.textContent='COPY';},2000);}).catch(function(){});
+    };
+    outWrap.appendChild(outBox);outWrap.appendChild(copyBtn2);
+    generateBtn.onclick=async function(){
+      var promptVal=typeof prompt==='function'?prompt():prompt;
+      if(!promptVal){showToast('Please fill in all required fields first.','err');return;}
+      generateBtn.disabled=true;generateBtn.innerHTML='<div class="spinner"></div> GENERATING...';
+      outBox.innerHTML='<div class="gen-loading"><div class="spinner"></div> Generating with Claude AI...</div>';
+      copyBtn2.style.display='none';
+      try{
+        var result=await askClaude(promptVal,typeof sys==='function'?sys():sys);
+        outBox.textContent=result;copyBtn2.style.display='block';
+      }catch(e){
+        outBox.innerHTML='<span style="color:var(--red);font-size:12px">Generation failed: '+e.message+'\n\nNote: AI generation works when running inside Claude.ai where the Anthropic API is available.</span>';
+      }
+      generateBtn.disabled=false;generateBtn.innerHTML=btnText||'⚡ GENERATE';
+    };
+    p.appendChild(generateBtn);p.appendChild(outWrap);
+    return{generateBtn,outBox,copyBtn:copyBtn2};
+  }
+
+  // ── PROPOSALS ────────────────────────────────────────────────────────────────
+  function buildProposals(){
+    var p=div('panel');
+    p.innerHTML='<div class="page-title">PROPOSAL GEN</div><div class="page-sub">Paste a job. Get a winning proposal in 10 seconds. Send. Repeat.</div>';
+    var g=div('g2');
+    var left=div('');
+    var jg=div('inp-group mb12');jg.innerHTML='<label>Job Description / Post</label>';
+    var jobTa=document.createElement('textarea');jobTa.placeholder='Paste the full job description or Reddit post here...';jobTa.style.minHeight='130px';jg.appendChild(jobTa);
+    var row2=div('g2 mb12');
+    var plg=div('inp-group');plg.innerHTML='<label>Platform</label>';
+    var platSel=sel(['upwork','fiverr','reddit','email','linkedin'],'upwork');plg.appendChild(platSel);
+    var rg=div('inp-group');rg.innerHTML='<label>Rate ($)</label>';var rateInp=inp('number','150');rg.appendChild(rateInp);
+    row2.appendChild(plg);row2.appendChild(rg);
+    left.appendChild(jg);left.appendChild(row2);
+    // Templates
+    var tRow=div('tags-row');
+    [['copywriting','Landing page copy'],['linkedin','LinkedIn rewrite'],['email','Email sequence'],['notion','Notion build'],['social','Social media'],['pitch','Pitch deck']].forEach(function(pair){
+      var t=div('tag');t.textContent=pair[1];
+      var templates={copywriting:"Looking for a skilled copywriter to rewrite my SaaS landing page. Current conversion rate is terrible. Need compelling headlines and benefit-driven copy. Budget $150. 48-hour deadline.",linkedin:"Need help rewriting my LinkedIn profile. I'm a B2B sales consultant and my profile doesn't reflect my expertise. Budget $75-100.",email:"I need a 5-email welcome sequence for my online fitness coaching program. Should nurture leads and convert to paid clients. Budget $200.",notion:"Looking for someone to build a Notion CRM and project management system for my small agency. Need client tracking and project pipeline. Budget $100-150.",social:"Need 30 days of social media content for my bakery. 1 post per day for Instagram and Facebook. Budget $150.",pitch:"Need help writing copy for my startup pitch deck for a seed round. Budget $200-300."};
+      t.onclick=function(){jobTa.value=templates[pair[0]]||'';};tRow.appendChild(t);
+    });
+    left.appendChild(div('card-title mb8','Quick Templates'));left.appendChild(tRow);
+    g.appendChild(left);
+    var right=div('');right.innerHTML='<div class="card-title mb8">Generated Proposal</div>';
+    var gBtn=btn('⚡ GENERATE PROPOSAL','btn btn-green');
+    var countBtn=btn('✅ MARK AS SENT','btn btn-ghost btn-sm mt12');countBtn.style.display='none';
+    var outWrap=div('out-wrap mt12');
+    var outBox=div('out-box tall');outBox.innerHTML='<span class="placeholder-txt">Your winning proposal appears here.</span>';
+    var copyBtn2=el('button','copy-btn','COPY');copyBtn2.style.display='none';
+    copyBtn2.onclick=function(){navigator.clipboard.writeText(outBox.textContent).then(function(){copyBtn2.textContent='COPIED!';setTimeout(function(){copyBtn2.textContent='COPY';},2000);}).catch(function(){});};
+    outWrap.appendChild(outBox);outWrap.appendChild(copyBtn2);
+    gBtn.onclick=async function(){
+      var job=jobTa.value.trim();if(!job){showToast('Paste a job description first','err');return;}
+      var plat=platSel.value,rate=rateInp.value||'100-200';
+      gBtn.disabled=true;gBtn.innerHTML='<div class="spinner"></div> GENERATING...';
+      outBox.innerHTML='<div class="gen-loading"><div class="spinner"></div> Generating with Claude AI...</div>';copyBtn2.style.display='none';countBtn.style.display='none';
+      try{
+        var result=await askClaude('Write a winning '+plat+' proposal for this job. My rate: $'+rate+'.\n\nJob:\n'+job+'\n\nRules:\n- Open by naming their EXACT problem from the post\n- Show you understand their specific situation\n- Briefly explain your approach (2-3 sentences)\n- Include a 1-2 line micro-sample or proof\n- Single CTA. Under 180 words.\n- Sound human, not robotic\n- NO "I hope this finds you well" opener\n'+(plat==='reddit'?'- Under 80 words, very casual\n':'')+(plat==='upwork'?'- End with one specific question about their project\n':'')+'\nWrite ONLY the proposal text.','You are a master freelancer who wins proposals by being hyper-specific and human.');
+        outBox.textContent=result;copyBtn2.style.display='block';countBtn.style.display='inline-flex';
+      }catch(e){outBox.innerHTML='<span style="color:var(--red);font-size:12px">'+e.message+'</span>';}
+      gBtn.disabled=false;gBtn.innerHTML='⚡ GENERATE PROPOSAL';
+    };
+    countBtn.onclick=function(){STATE.proposals++;persistLocal();updateRevUI();showToast('Proposal counted! Total: '+STATE.proposals);};
+    left.appendChild(gBtn);
+    right.appendChild(outWrap);right.appendChild(countBtn);
+    g.appendChild(right);p.appendChild(g);
+    return p;
+  }
+
+  // ── PRODUCTS ─────────────────────────────────────────────────────────────────
+  function buildProducts(){
+    var p=div('panel');
+    p.innerHTML='<div class="page-title">PRODUCT FACTORY</div><div class="page-sub">Build sellable digital products in minutes. Price. List. Get paid.</div>';
+    var tabLabels=['Prompt Pack','Template Bundle','How-To Guide','Fiverr Gig'];
+    var activeTab2=0;
+    var tabsDiv=div('tabs');tabsDiv.id='prod-tabs';
+    var contentDiv=div('');
+    tabLabels.forEach(function(tl,i){
+      var t=div('tab'+(i===0?' active':''));t.textContent=tl;
+      t.onclick=function(){activeTab2=i;document.querySelectorAll('#prod-tabs .tab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');renderProdContent();};
+      tabsDiv.appendChild(t);
+    });
+    p.appendChild(tabsDiv);p.appendChild(contentDiv);
+
+    function renderProdContent(){
+      contentDiv.innerHTML='';
+      var g=div('g2');
+      var left=div(''),right=div('');right.innerHTML='<div class="card-title mb8">Generated Output</div>';
+      var outWrap=div('out-wrap');var outBox=div('out-box tall');outBox.innerHTML='<span class="placeholder-txt">Output appears here...</span>';
+      var copyBtn3=el('button','copy-btn','COPY');copyBtn3.style.display='none';
+      copyBtn3.onclick=function(){navigator.clipboard.writeText(outBox.textContent).then(function(){copyBtn3.textContent='COPIED!';setTimeout(function(){copyBtn3.textContent='COPY';},2000);}).catch(function(){});};
+      outWrap.appendChild(outBox);outWrap.appendChild(copyBtn3);
+      right.appendChild(outWrap);
+
+      async function runGen(promptFn,sysFn){
+        var pr=typeof promptFn==='function'?promptFn():promptFn;if(!pr){showToast('Fill in required fields first','err');return;}
+        var genBtn=left.querySelector('.btn-green');if(genBtn){genBtn.disabled=true;genBtn.innerHTML='<div class="spinner"></div> BUILDING...';}
+        outBox.innerHTML='<div class="gen-loading"><div class="spinner"></div> Generating with Claude AI...</div>';copyBtn3.style.display='none';
+        try{
+          var r=await askClaude(pr,sysFn&&sysFn());
+          outBox.textContent=r;copyBtn3.style.display='block';
+        }catch(e){outBox.innerHTML='<span style="color:var(--red);font-size:12px">'+e.message+'</span>';}
+        if(genBtn){genBtn.disabled=false;}
+      }
+
+      if(activeTab2===0){
+        // Prompt Pack
+        var ng=div('inp-group mb12');ng.innerHTML='<label>Target Niche</label>';
+        var nSel=sel(['Real Estate Agents','Personal Trainers','Life Coaches','Therapists','Restaurant Owners','E-commerce Sellers','Freelance Designers','Digital Marketers','Content Creators','Lawyers','Financial Advisors'],'Real Estate Agents');ng.appendChild(nSel);
+        var cg=div('inp-group mb12');cg.innerHTML='<label>Prompt Count</label>';
+        var cSel=sel([{value:'25',label:'25 prompts → $17 product'},{value:'50',label:'50 prompts → $27 product'},{value:'100',label:'100 prompts → $37 product'}],'50');cg.appendChild(cSel);
+        var gb=btn('⚡ BUILD PROMPT PACK','btn btn-green');
+        gb.onclick=function(){var n=nSel.value,c=cSel.value;var price=c==='25'?17:c==='50'?27:37;runGen(function(){return'Create '+c+' high-quality AI prompts for '+n+'.\n\n# '+c+' AI Prompts for '+n+'\n*Use these daily to save hours and grow your business.*\n\nOrganize into 5 relevant categories. For each prompt:\n**Prompt N:** [Full copy-paste ready prompt with [BRACKETS] for variables]\n*What this does: [1-line explanation]*\n\nMake every prompt practical and immediately useful. This is a $'+price+' product. Write only the product content.';},function(){return'You are a top-selling Gumroad creator. Write prompts that feel premium and immediately useful.';});};
+        var note=div('alert a-info mt12');note.style.fontSize='11px';note.innerHTML='After: Copy → Google Docs → format → export PDF → list on Gumroad';
+        left.appendChild(ng);left.appendChild(cg);left.appendChild(gb);left.appendChild(note);
+      } else if(activeTab2===1){
+        // Template
+        var tg=div('inp-group mb12');tg.innerHTML='<label>Template Type</label>';
+        var tSel=sel(['Notion Client CRM','Notion Content Calendar','Notion Business Dashboard','Google Sheets Revenue Tracker','Google Sheets Client Pipeline','Email Swipe File','Cold DM Swipe File','Weekly Review System'],'Notion Client CRM');tg.appendChild(tSel);
+        var ag=div('inp-group mb12');ag.innerHTML='<label>Target Audience</label>';var audInp=inp('text','freelancers, coaches...');ag.appendChild(audInp);
+        var gb2=btn('⚡ BUILD TEMPLATE SPEC','btn btn-green');
+        gb2.onclick=function(){runGen(function(){return'Create a detailed build blueprint for "'+tSel.value+'" for '+(audInp.value||'freelancers')+'.\n\nInclude: title+tagline, Gumroad 3-sentence sales copy, price $29, each section with columns and 3 sample rows, 5-step setup instructions, included checklist, community post hook.\n\nBe specific enough to build in 2 hours.';},null);};
+        left.appendChild(tg);left.appendChild(ag);left.appendChild(gb2);
+      } else if(activeTab2===2){
+        // Guide
+        var topicG=div('inp-group mb12');topicG.innerHTML='<label>Guide Topic</label>';var topicInp=inp('text','e.g. How to use AI to write content 10x faster');topicG.appendChild(topicInp);
+        var audG=div('inp-group mb12');audG.innerHTML='<label>Target Reader</label>';var audInp2=inp('text','e.g. restaurant owners with no tech skills');audG.appendChild(audInp2);
+        var priceG=div('inp-group mb12');priceG.innerHTML='<label>Price</label>';
+        var pSel=sel([{value:'17',label:'$17 — Impulse buy'},{value:'27',label:'$27 — Sweet spot'},{value:'47',label:'$47 — Premium'},{value:'67',label:'$67 — Mini course'}],'27');priceG.appendChild(pSel);
+        var gb3=btn('⚡ BUILD GUIDE OUTLINE','btn btn-green');
+        gb3.onclick=function(){
+          if(!topicInp.value.trim()){showToast('Enter a topic first','err');return;}
+          runGen(function(){return'Create a complete sell-ready guide outline for: "'+topicInp.value+'"\nTarget: '+(audInp2.value||'small business owners')+'\nPrice: $'+pSel.value+'\n\nInclude:\n# [POWER TITLE WITH IMPACT WORDS]\n## Subtitle: [transformation + timeframe]\n### Gumroad Sales Copy: [3 punchy sentences]\n## What You\'ll Learn (8-10 specific bullet outcomes)\n## Table of Contents (6-7 chapters with 3-4 subpoints each)\n## Bonus Section\n## Before/After Transformation\n## Community Post Hook (2-3 sentences, non-spammy)';},null);
+        };
+        left.appendChild(topicG);left.appendChild(audG);left.appendChild(priceG);left.appendChild(gb3);
+      } else {
+        // Fiverr Gig
+        var gigG=div('inp-group mb12');gigG.innerHTML='<label>Gig Type</label>';
+        var gigSel=sel(['Landing Page Copywriting','LinkedIn Profile Rewrite','Email Sequence Writing','Notion Dashboard Build','Social Media Content Pack','Pitch Deck Writing','Google Business Profile Setup','Business Plan Writing','Sales Script Writing'],'Landing Page Copywriting');gigG.appendChild(gigSel);
+        var uspG=div('inp-group mb12');uspG.innerHTML='<label>Your Unique Angle (USP)</label>';var uspInp=inp('text','e.g. 24hr delivery, ex-agency, conversion-focused...');uspG.appendChild(uspInp);
+        var gb4=btn('⚡ WRITE GIG DESCRIPTION','btn btn-green');
+        gb4.onclick=function(){runGen(function(){return'Write a complete Fiverr gig for: "'+gigSel.value+'"\nMy angle: '+(uspInp.value||'fast delivery, AI-powered quality')+'\n\nGIG TITLE: [under 80 chars, starts with "I will", includes keyword]\n\nGIG DESCRIPTION: [150-200 words. Open with buyer\'s pain point. Explain process. List 3 deliverables. Urgent CTA. No clichés.]\n\nPACKAGES:\nBASIC ($[price]): Name / Includes / Delivery / Revisions\nSTANDARD ($[price]): [same format]\nPREMIUM ($[price]): [same format]\n\nFAQ (5 Q&As)\n\nTAGS (5 keywords)\n\nGIG IMAGES: [describe what to put on 3 Fiverr images]';},function(){return'You are a top-rated Fiverr seller with 2000+ reviews. Write gig copy that converts at maximum rate.';});};
+        var note2=div('alert a-info mt12');note2.style.fontSize='11px';note2.innerHTML='After: Create 3 images in Canva → upload to Fiverr → launch immediately';
+        left.appendChild(gigG);left.appendChild(uspG);left.appendChild(gb4);left.appendChild(note2);
+      }
+      g.appendChild(left);g.appendChild(right);contentDiv.appendChild(g);
+    }
+    renderProdContent();
+    return p;
+  }
+
+  // ── OUTREACH ──────────────────────────────────────────────────────────────────
+  function buildOutreach(){
+    var p=div('panel');
+    p.innerHTML='<div class="page-title">OUTREACH ENGINE</div><div class="page-sub">Generate personalized outreach. Send it. Collect money.</div>';
+    var tabLabels2=['Local Business','Reddit DM','LinkedIn'];
+    var activeTab3=0;
+    var tabsDiv2=div('tabs');tabsDiv2.id='out-tabs';
+    var contentDiv2=div('');
+    tabLabels2.forEach(function(tl,i){
+      var t=div('tab'+(i===0?' active':''));t.textContent=tl;
+      t.onclick=function(){activeTab3=i;document.querySelectorAll('#out-tabs .tab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');renderOut();};
+      tabsDiv2.appendChild(t);
+    });
+    p.appendChild(tabsDiv2);p.appendChild(contentDiv2);
+
+    function outGenUI(leftContent,promptFn,sysFn){
+      contentDiv2.innerHTML='';
+      var g=div('g2');
+      var right=div('');right.innerHTML='<div class="card-title mb8">Generated Output</div>';
+      var outWrap=div('out-wrap');var outBox=div('out-box tall');outBox.innerHTML='<span class="placeholder-txt">Output appears here...</span>';
+      var copyBtn4=el('button','copy-btn','COPY');copyBtn4.style.display='none';
+      copyBtn4.onclick=function(){navigator.clipboard.writeText(outBox.textContent).then(function(){copyBtn4.textContent='COPIED!';setTimeout(function(){copyBtn4.textContent='COPY';},2000);}).catch(function(){});};
+      outWrap.appendChild(outBox);outWrap.appendChild(copyBtn4);right.appendChild(outWrap);
+      var gb=btn('⚡ GENERATE','btn btn-green');
+      gb.onclick=async function(){
+        var pr=typeof promptFn==='function'?promptFn():promptFn;if(!pr){showToast('Fill in required fields','err');return;}
+        gb.disabled=true;gb.innerHTML='<div class="spinner"></div> GENERATING...';
+        outBox.innerHTML='<div class="gen-loading"><div class="spinner"></div> Generating with Claude AI...</div>';copyBtn4.style.display='none';
+        try{
+          var r=await askClaude(pr,typeof sysFn==='function'?sysFn():'You write outreach messages that get replies because they are specific, brief, and reference something real about the recipient.');
+          outBox.textContent=r;copyBtn4.style.display='block';
+        }catch(e){outBox.innerHTML='<span style="color:var(--red);font-size:12px">'+e.message+'</span>';}
+        gb.disabled=false;gb.innerHTML='⚡ GENERATE';
+      };
+      leftContent.appendChild(gb);
+      g.appendChild(leftContent);g.appendChild(right);contentDiv2.appendChild(g);
+    }
+
+    function renderOut(){
+      if(activeTab3===0){
+        var left=div('');
+        left.innerHTML='<div class="alert a-info mb12" style="font-size:11px">💡 Best offer: "I noticed [problem]. I\'ll fix it + write 30 days of content for $200, delivered in 24 hours."</div>';
+        var bg=div('inp-group mb12');bg.innerHTML='<label>Business Type</label>';var bSel=sel(['Restaurant','Hair Salon / Barbershop','Gym / Fitness Studio','General Contractor','Chiropractor / Physio','Real Estate Agent','Dentist','Plumber / Electrician','Retail Shop','Accountant','Personal Trainer'],'Restaurant');bg.appendChild(bSel);
+        var prg=div('inp-group mb12');prg.innerHTML='<label>Problem You Noticed</label>';var probInp=inp('text','e.g. No posts in 3 months, 5 unanswered reviews...');prg.appendChild(probInp);
+        var pg=div('inp-group mb12');pg.innerHTML='<label>Offer Price ($)</label>';var priceInp=inp('number','200');priceInp.value='200';pg.appendChild(priceInp);
+        left.appendChild(bg);left.appendChild(prg);left.appendChild(pg);
+        outGenUI(left,function(){return'Cold email to a '+bSel.value+' owner.\nProblem: '+(probInp.value||'Google Business profile not updated in months with unanswered reviews')+'\nOffer: $'+(priceInp.value||200)+', done-for-you, delivered in 24 hours\n\nSUBJECT: [specific, curiosity-driven, under 50 chars, NOT salesy]\n\n[Body: Reference their specific problem → 2 sentences on what I\'ll do → 1 proof claim → 1 CTA question. Under 110 words. Helpful neighbor tone, not salesperson.]';});
+      } else if(activeTab3===1){
+        var left2=div('');
+        var rg=div('inp-group mb12');rg.innerHTML='<label>Their Reddit Post</label>';var rdInp=document.createElement('textarea');rdInp.placeholder='Paste their post...';rdInp.style.minHeight='90px';rg.appendChild(rdInp);
+        var og=div('inp-group mb12');og.innerHTML='<label>Your Offer</label>';var offInp=inp('text','e.g. I can write your landing page for $150, 24hr delivery');og.appendChild(offInp);
+        left2.appendChild(rg);left2.appendChild(og);
+        var warn=div('alert a-warn mt12');warn.style.fontSize='11px';warn.innerHTML='Find posts using: "need help with" / "struggling with" / "anyone know how to"';left2.appendChild(warn);
+        outGenUI(left2,function(){if(!rdInp.value.trim()){showToast('Paste their Reddit post first','err');return null;}return'Reddit DM responding to: "'+rdInp.value+'"\nMy offer: '+(offInp.value||'help with this problem')+'\n\nRules: Reference their specific post. Get to the offer fast. Sound like a real human. Under 75 words. Include a 1-paragraph free sample to close faster if possible. End with a single low-pressure question.\n\nWrite ONLY the DM text.';});
+      } else {
+        var left3=div('');
+        var tg2=div('inp-group mb12');tg2.innerHTML='<label>Their Title / Role</label>';var titleInp=inp('text','e.g. Founder at B2B SaaS, Real estate agent...');tg2.appendChild(titleInp);
+        var og2=div('inp-group mb12');og2.innerHTML='<label>What You\'re Offering</label>';var offInp2=inp('text','e.g. Email sequences that book more calls');og2.appendChild(offInp2);
+        left3.appendChild(tg2);left3.appendChild(og2);
+        outGenUI(left3,function(){if(!titleInp.value.trim()){showToast('Enter their title first','err');return null;}return'LinkedIn outreach for a '+titleInp.value+'.\nOffer: '+(offInp2.value||'help grow their business')+'\n\nCONNECTION REQUEST (under 290 chars — LinkedIn hard limit):\n[No "I came across your profile". Reference their role. Include value hook.]\n\nFOLLOW-UP (day 2-3, under 130 words):\n[Reference their role. One result you deliver. Micro-proof. End with a specific yes/no question.]';});
+      }
+    }
+    renderOut();
+    return p;
+  }
+
+  // ── CONTENT ───────────────────────────────────────────────────────────────────
+  function buildContent(){
+    var p=div('panel');
+    p.innerHTML='<div class="page-title">CONTENT SCHEDULER</div><div class="page-sub">Value-first posts that drive traffic to your products.</div><div class="alert a-warn mb16">⚠️ <strong>Golden Rule:</strong> Every post must be worth reading even without the product link. Communities ban spam instantly. Value first, conversion second — always.</div>';
+    var g=div('g2');
+    var left=div('');
+    var fields=[
+      {lbl:'Platform',type:'sel',opts:['Reddit','LinkedIn','Twitter/X','Facebook Group','Instagram Caption'],id:'cnt-plat'},
+      {lbl:'Your Product or Service',type:'inp',placeholder:'e.g. 50 AI prompts for real estate agents ($27)',id:'cnt-prod'},
+      {lbl:'Target Community',type:'inp',placeholder:'e.g. r/realestate, fitness Facebook groups',id:'cnt-com'},
+      {lbl:'Number of Posts',type:'sel',opts:[{value:'1',label:'1 post (test)'},{value:'3',label:'3 posts (3-day campaign)'},{value:'7',label:'7 posts (1-week campaign)'}],id:'cnt-num'},
+    ];
+    fields.forEach(function(f){
+      var g2=div('inp-group mb12');g2.innerHTML='<label>'+f.lbl+'</label>';
+      var e2;
+      if(f.type==='sel'){e2=sel(f.opts,f.opts[0]&&f.opts[0].value?f.opts[0].value:f.opts[0]);e2.style.width='100%';}
+      else{e2=inp('text',f.placeholder);}
+      e2.id=f.id;g2.appendChild(e2);left.appendChild(g2);
+    });
+    var genBtn=btn('⚡ GENERATE POSTS','btn btn-green');
+    var note=div('alert a-info mt12');note.style.fontSize='11px';note.innerHTML='✓ Space posts out — don\'t post all at once<br/>✓ Engage with comments for first 30 min after posting';
+    left.appendChild(genBtn);left.appendChild(note);
+
+    var right=div('');right.innerHTML='<div class="card-title mb8">Generated Content</div>';
+    var outWrap=div('out-wrap');var outBox=div('out-box tall');outBox.innerHTML='<span class="placeholder-txt">Your content calendar appears here — value-first posts that naturally lead to your product.</span>';
+    var copyBtn5=el('button','copy-btn','COPY');copyBtn5.style.display='none';
+    copyBtn5.onclick=function(){navigator.clipboard.writeText(outBox.textContent).then(function(){copyBtn5.textContent='COPIED!';setTimeout(function(){copyBtn5.textContent='COPY';},2000);}).catch(function(){});};
+    outWrap.appendChild(outBox);outWrap.appendChild(copyBtn5);right.appendChild(outWrap);
+
+    genBtn.onclick=async function(){
+      var prod=document.getElementById('cnt-prod').value;
+      if(!prod){showToast('Enter your product first','err');return;}
+      var plat=document.getElementById('cnt-plat').value,com=document.getElementById('cnt-com').value,num=document.getElementById('cnt-num').value;
+      genBtn.disabled=true;genBtn.innerHTML='<div class="spinner"></div> GENERATING...';
+      outBox.innerHTML='<div class="gen-loading"><div class="spinner"></div> Generating with Claude AI...</div>';copyBtn5.style.display='none';
+      try{
+        var r=await askClaude('Write '+num+' '+plat+' posts promoting: "'+prod+'"\nCommunity: '+(com||'relevant communities')+'\n\nCRITICAL: Each post must provide MASSIVE standalone value. Product mention is a casual footnote at the end only.\n\nFor each post:\n━━━━━━━━━━━━━━━━━\nPOST [N] | [Community to post in]\nTITLE: [compelling specific headline]\n[Full post — real actionable value. Product mention at END as "I put this into a [product type] if you want the full version."]\nWHY IT WILL PERFORM: [1 sentence]\n━━━━━━━━━━━━━━━━━\n\nVary formats: tip list, personal story, how-to, controversial take. 150-300 words each.','You grow products through authentic community content. Never write anything that sounds like an advertisement.');
+        outBox.textContent=r;copyBtn5.style.display='block';
+      }catch(e){outBox.innerHTML='<span style="color:var(--red);font-size:12px">'+e.message+'</span>';}
+      genBtn.disabled=false;genBtn.innerHTML='⚡ GENERATE POSTS';
+    };
+    g.appendChild(left);g.appendChild(right);p.appendChild(g);
+    return p;
+  }
+
+  // ── ORDERS ────────────────────────────────────────────────────────────────────
+  function buildOrders(){
+    var p=div('panel');
+    var totalActive=STATE.orders.filter(function(o){return o.status==='active';}).reduce(function(s,o){return s+Number(o.amount);},0);
+    var totalDone=STATE.orders.filter(function(o){return o.status==='done';}).reduce(function(s,o){return s+Number(o.amount);},0);
+    p.innerHTML='<div class="page-title">ORDER TRACKER</div><div class="page-sub">Every client. Every deadline. Nothing slips.</div>';
+    var sg=div('stat-grid');sg.style.gridTemplateColumns='repeat(3,1fr)';
+    sg.innerHTML='<div class="stat-card"><div class="stat-lbl">Total Orders</div><div class="stat-val">'+STATE.orders.length+'</div></div><div class="stat-card c-yellow"><div class="stat-lbl">In Progress</div><div class="stat-val">$'+totalActive.toLocaleString()+'</div></div><div class="stat-card"><div class="stat-lbl">Delivered</div><div class="stat-val">$'+totalDone.toLocaleString()+'</div></div>';
+    p.appendChild(sg);
+
+    var hRow=div('flex items-c just-b mb12');hRow.innerHTML='<div class="sec-hd" style="margin-bottom:0;flex:1">📋 ALL ORDERS</div>';
+    var addBtn=btn('+ ADD ORDER','btn btn-green btn-sm');hRow.appendChild(addBtn);p.appendChild(hRow);
+
+    // Add order form (hidden)
+    var formDiv=div('card mb16');formDiv.style.display='none';
+    formDiv.innerHTML='<div class="card-title">NEW ORDER</div>';
+    var fr3=div('g3 mb12');
+    var cg=div('inp-group');cg.innerHTML='<label>Client</label>';var cInp=inp('text','Name or username');cg.appendChild(cInp);
+    var svg=div('inp-group');svg.innerHTML='<label>Service</label>';var svInp=inp('text','e.g. Landing page copy');svg.appendChild(svInp);
+    var amtG=div('inp-group');amtG.innerHTML='<label>Amount ($)</label>';var amtInp2=inp('number','150');amtG.appendChild(amtInp2);
+    fr3.appendChild(cg);fr3.appendChild(svg);fr3.appendChild(amtG);
+    var fr3b=div('g3 mb12');
+    var platG=div('inp-group');platG.innerHTML='<label>Platform</label>';var platSel2=sel(['Fiverr','Upwork','Direct/Stripe','Reddit DM','Email/LinkedIn','Gumroad'],'Fiverr');platG.appendChild(platSel2);
+    var dlG=div('inp-group');dlG.innerHTML='<label>Deadline</label>';var dlInp=inp('text','24 hours');dlG.appendChild(dlInp);
+    var stG=div('inp-group');stG.innerHTML='<label>Status</label>';var stSel=sel([{value:'pending',label:'Pending Payment'},{value:'active',label:'In Progress'},{value:'done',label:'Delivered'}],'pending');stG.appendChild(stSel);
+    fr3b.appendChild(platG);fr3b.appendChild(dlG);fr3b.appendChild(stG);
+    var notesG=div('inp-group mb12');notesG.innerHTML='<label>Notes</label>';var notesInp=inp('text','Any details...');notesG.appendChild(notesInp);
+    var fbRow=div('flex gap8');
+    var saveBtn=btn('SAVE ORDER','btn btn-green');var cancelBtn=btn('CANCEL','btn btn-ghost');
+    saveBtn.onclick=async function(){
+      if(!cInp.value.trim()||!svInp.value.trim()){showToast('Client and service are required','err');return;}
+      var order={id:Date.now(),user_id:STATE.user&&STATE.user.userId,client:cInp.value.trim(),service:svInp.value.trim(),amount:parseFloat(amtInp2.value)||0,platform:platSel2.value,deadline:dlInp.value||'ASAP',status:stSel.value,notes:notesInp.value,created_at:new Date().toISOString()};
+      STATE.orders.unshift(order);persistLocal();showToast('Order added!');
+      var sb3=getSB();if(sb3&&STATE.user){
+        var res=await sb3.from('orders').insert({client:order.client,service:order.service,amount:order.amount,platform:order.platform,deadline:order.deadline,status:order.status,notes:order.notes,user_id:STATE.user.userId}).select().single().catch(function(){return{data:null};});
+        if(res.data)STATE.orders[0]=res.data;
+      }
+      formDiv.style.display='none';renderOrderTable(tblWrap);updateRevUI();
+    };
+    cancelBtn.onclick=function(){formDiv.style.display='none';};
+    fbRow.appendChild(saveBtn);fbRow.appendChild(cancelBtn);
+    formDiv.appendChild(fr3);formDiv.appendChild(fr3b);formDiv.appendChild(notesG);formDiv.appendChild(fbRow);
+    addBtn.onclick=function(){formDiv.style.display=formDiv.style.display==='none'?'block':'none';};
+    p.appendChild(formDiv);
+
+    var tblWrap=div('tbl-wrap');renderOrderTable(tblWrap);p.appendChild(tblWrap);
+    return p;
+  }
+
+  function renderOrderTable(tblWrap){
+    tblWrap.innerHTML='';
+    var t=document.createElement('table');
+    t.innerHTML='<thead><tr><th>Client</th><th>Service</th><th>Platform</th><th>Value</th><th>Deadline</th><th>Status</th><th>Actions</th></tr></thead>';
+    var tb=document.createElement('tbody');
+    if(!STATE.orders.length){
+      var tr=document.createElement('tr');var td=document.createElement('td');td.colSpan=7;td.style.cssText='text-align:center;color:var(--muted);padding:28px;font-family:Space Mono,monospace;font-size:10px;';td.textContent='No orders yet — go land your first client';tr.appendChild(td);tb.appendChild(tr);
+    } else {
+      STATE.orders.forEach(function(o){
+        var SM={pending:{cls:'sp-pending',next:'active',lbl:'▶ START'},active:{cls:'sp-active',next:'done',lbl:'✓ DONE'},done:{cls:'sp-done',next:'pending',lbl:'↩ REOPEN'}};
+        var sm=SM[o.status]||SM.pending;
+        var tr=document.createElement('tr');
+        tr.innerHTML='<td style="font-weight:600">'+escape(o.client||'')+'</td><td style="color:#ccc;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escape(o.service||'')+'</td><td style="font-family:Space Mono,monospace;font-size:9px;color:var(--muted)">'+escape(o.platform||'')+'</td><td style="font-family:Space Mono,monospace;color:var(--green);font-weight:700">$'+Number(o.amount||0).toLocaleString()+'</td><td style="font-family:Space Mono,monospace;font-size:9px;color:var(--yellow)">'+escape(o.deadline||'')+'</td><td><span class="status-pill '+sm.cls+'">'+escape(o.status||'')+'</span></td><td></td>';
+        var actTd=tr.cells[6];
+        var advBtn=btn(sm.lbl,'btn btn-ghost btn-sm');
+        advBtn.onclick=async function(){
+          o.status=sm.next;persistLocal();
+          var sb4=getSB();if(sb4&&o.id&&String(o.id).length>10)await sb4.from('orders').update({status:o.status}).eq('id',o.id).catch(function(){});
+          renderOrderTable(tblWrap);updateRevUI();
+        };
+        var delBtn=document.createElement('button');
+        delBtn.style.cssText='background:none;border:1px solid var(--border);color:var(--muted);width:24px;height:24px;border-radius:3px;cursor:pointer;font-size:13px;margin-left:4px;';
+        delBtn.textContent='×';
+        delBtn.onclick=async function(){
+          STATE.orders=STATE.orders.filter(function(x){return x.id!==o.id;});persistLocal();
+          var sb5=getSB();if(sb5&&o.id&&String(o.id).length>10)await sb5.from('orders').delete().eq('id',o.id).catch(function(){});
+          renderOrderTable(tblWrap);updateRevUI();
+        };
+        actTd.style.display='flex';actTd.style.gap='4px';actTd.style.padding='9px 11px';
+        actTd.appendChild(advBtn);actTd.appendChild(delBtn);
+        tb.appendChild(tr);
+      });
+    }
+    t.appendChild(tb);tblWrap.appendChild(t);
+  }
+
+  // ── PLATFORMS ─────────────────────────────────────────────────────────────────
+  function buildPlatforms(){
+    var p=div('panel');
+    p.innerHTML='<div class="page-title">PLATFORMS</div><div class="page-sub">Where the money lives. Setup order: Stripe → Gumroad → Fiverr → Upwork.</div><div class="alert a-warn mb20">⏱ <strong>Setup Stripe FIRST.</strong> Without it, you cannot receive money from any platform.</div>';
+    var plats=[
+      {icon:'💳',name:'Stripe',desc:'Accept direct payments. Same-day payouts.',earn:'SETUP FIRST',url:'https://stripe.com',badge:true},
+      {icon:'🛒',name:'Gumroad',desc:'Sell digital products. No approval needed.',earn:'$17–$97/sale',url:'https://gumroad.com'},
+      {icon:'🎯',name:'Fiverr',desc:'Inbound clients find you. Post 5 gigs.',earn:'$50–$250/gig',url:'https://fiverr.com'},
+      {icon:'💼',name:'Upwork',desc:'Active job marketplace. Apply 10+ daily.',earn:'$50–$500/job',url:'https://upwork.com'},
+      {icon:'🔴',name:'Reddit',desc:'Find buyers in niche communities.',earn:'$50–$300/client',url:'https://reddit.com'},
+      {icon:'🔵',name:'LinkedIn',desc:'B2B outreach. Best for $200+ offers.',earn:'$150–$500/deal',url:'https://linkedin.com'},
+      {icon:'⚪',name:'Contra',desc:'Zero commission freelancing.',earn:'0% commission',url:'https://contra.com'},
+      {icon:'🤖',name:'Claude AI',desc:'Your production engine. Write 10x faster.',earn:'FREE',url:'https://claude.ai'},
+      {icon:'🎨',name:'Canva',desc:'Design product covers + gig images.',earn:'FREE',url:'https://canva.com'},
+    ];
+    var g=div('plat-grid');
+    plats.forEach(function(pl){
+      var c=div('plat-card');
+      c.innerHTML=(pl.badge?'<div class="pc-badge">SETUP FIRST</div><br>':'')+'<div class="pc-icon">'+pl.icon+'</div><div class="pc-name">'+pl.name+'</div><div class="pc-desc">'+pl.desc+'</div><div class="pc-earn">'+pl.earn+'</div>';
+      c.onclick=function(){window.open(pl.url,'_blank');};g.appendChild(c);
+    });
+    p.appendChild(g);
+    return p;
+  }
+
+  // ── BOOT ──────────────────────────────────────────────────────────────────────
+  function boot(){
+    var url=lsStr(K.URL),key=lsStr(K.KEY);
+    if(url&&key){initSB(url,key);STATE.sbReady=true;STATE.dbStatus='connected';}
+    var ts=ls(K.TIMER);if(!ts){ts=Date.now();lsSet(K.TIMER,ts);}STATE.timerStart=ts;
+    var session=ls(K.SESSION);
+    if(session&&session.userId){
+      STATE.user=session;
+      loadUserData(session.userId).then(function(){if(STATE.step==='app')renderAppContent();});
+      STATE.step='app';render();
+    } else if(!url){
+      STATE.step='dbsetup';render();
+    } else {
+      STATE.step='auth';render();
+    }
+  }
+
+  // Wait for Supabase to load
+  if(window.supabase){boot();}
+  else{
+    var checkInterval=setInterval(function(){
+      if(window.supabase){clearInterval(checkInterval);boot();}
+    },100);
+    setTimeout(function(){
+      clearInterval(checkInterval);
+      // Supabase failed to load from CDN — run without it
+      window.supabase={createClient:function(){return null;}};
+      boot();
+    },5000);
+  }
+
+})();
+</script>
+</body>
+</html>
