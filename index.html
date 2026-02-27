@@ -341,6 +341,15 @@ tr:hover td{background:rgba(255,255,255,.01);}
   var K={URL:'cm_sb_url',KEY:'cm_sb_key',SESSION:'cm_session',TIMER:'cm_timer',STATE:'cm_state_'};
   var GOAL=5000;
   var _sb=null;
+  var ADMIN_EMAIL='juniorale947@gmail.com';
+
+  // ── HARDCODED SUPABASE CREDENTIALS ─────────────────────────────────────────
+  // These are set once here — users never see the DB setup page again.
+  // To change credentials, only the admin can do so via Admin Settings in sidebar.
+  var HARDCODED_URL=lsStr(K.URL);
+  var HARDCODED_KEY=lsStr(K.KEY);
+
+  function isAdmin(){return STATE.user&&STATE.user.email&&STATE.user.email.toLowerCase()===ADMIN_EMAIL.toLowerCase();}  
 
   function ls(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v));}catch(e){return null;}}
   function lsStr(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
@@ -433,7 +442,6 @@ tr:hover td{background:rgba(255,255,255,.01);}
   function render(){
     root.innerHTML='';
     if(STATE.step==='loading'){renderLoading();}
-    else if(STATE.step==='dbsetup'){renderDBSetup();}
     else if(STATE.step==='auth'){renderAuth();}
     else{renderApp();}
   }
@@ -444,7 +452,7 @@ tr:hover td{background:rgba(255,255,255,.01);}
     root.innerHTML='<div style="text-align:center"><div class="auth-logo" style="margin-bottom:16px">CASH<span>MACHINE</span></div><div class="spinner"></div></div>';
   }
 
-  // ── DB SETUP MODAL ───────────────────────────────────────────────────────────
+  // ── ADMIN EMAIL & SQL SCHEMA ─────────────────────────────────────────────────
   var SQL_SCHEMA=`CREATE TABLE IF NOT EXISTS users (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   name text NOT NULL,
@@ -473,6 +481,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   done boolean DEFAULT false, sort_order integer DEFAULT 0
 );`;
 
+  // ── DB SETUP MODAL (kept for Admin panel use only) ───────────────────────────
   function renderDBSetup(){
     root.style.display='block';root.style.alignItems='';root.style.justifyContent='';
     var wrap=div('modal-bg');
@@ -525,10 +534,6 @@ CREATE TABLE IF NOT EXISTS tasks (
     wrap.appendChild(div('auth-grid'));wrap.appendChild(div('auth-glow'));
     var card=div('auth-card');
     card.innerHTML='<div class="auth-logo">CASH<span>MACHINE</span></div><div class="auth-tagline">72-Hour Survival System</div>';
-    if(!STATE.sbReady){
-      var warn=div('alert a-warn mb12');warn.innerHTML='⚠️ Running in <strong>local mode</strong> — no Supabase. Accounts save to this browser only.';
-      card.appendChild(warn);
-    }
     // Tabs
     var tabWrap=div('auth-tabs-wrap');
     var loginTab=div('auth-tab active');loginTab.textContent='Login';
@@ -564,8 +569,7 @@ CREATE TABLE IF NOT EXISTS tasks (
       formWrap.appendChild(footerDiv);
       var modeNote=div('auth-footer mt8');modeNote.style.fontSize='11px';modeNote.style.color='var(--muted)';
       modeNote.textContent='Credentials verified against '+(STATE.sbReady?'Supabase database':'local browser storage')+'.';
-      formWrap.appendChild(modeNote);
-      document.addEventListener('click',function handler(e){if(e.target.id==='switch-link'){mode=mode==='login'?'register':'login';loginTab.classList.toggle('active',mode==='login');regTab.classList.toggle('active',mode==='register');buildForm();document.removeEventListener('click',handler);}});
+      formWrap.appendChild(modeNote);      document.addEventListener('click',function handler(e){if(e.target.id==='switch-link'){mode=mode==='login'?'register':'login';loginTab.classList.toggle('active',mode==='login');regTab.classList.toggle('active',mode==='register');buildForm();document.removeEventListener('click',handler);}});
     }
     loginTab.onclick=function(){mode='login';loginTab.classList.add('active');regTab.classList.remove('active');buildForm();};
     regTab.onclick=function(){mode='register';regTab.classList.add('active');loginTab.classList.remove('active');buildForm();};
@@ -733,7 +737,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     var sb=document.createElement('div');
     if(STATE.user){
       var user=div('sb-user');
-      user.innerHTML='<div class="sb-avatar">'+((STATE.user.name||STATE.user.email||'U')[0].toUpperCase())+'</div><div><div class="sb-name">'+escape(STATE.user.name||'User')+'</div><div class="sb-email">'+escape(STATE.user.email)+'</div></div>';
+      var adminBadge=isAdmin()?'<span style="font-family:Space Mono,monospace;font-size:8px;background:rgba(255,214,0,.15);border:1px solid rgba(255,214,0,.3);color:var(--yellow);padding:1px 5px;border-radius:2px;letter-spacing:1px;margin-left:4px;">ADMIN</span>':'';
+      user.innerHTML='<div class="sb-avatar" style="'+(isAdmin()?'background:linear-gradient(135deg,var(--yellow),var(--red));':'')+'">'+((STATE.user.name||STATE.user.email||'U')[0].toUpperCase())+'</div><div><div class="sb-name">'+escape(STATE.user.name||'User')+adminBadge+'</div><div class="sb-email">'+escape(STATE.user.email)+'</div></div>';
       sb.appendChild(user);
     }
     var navItems=[
@@ -748,9 +753,15 @@ CREATE TABLE IF NOT EXISTS tasks (
       {id:'orders',icon:'📋',label:'Order Tracker'},
       {id:'platforms',icon:'🌐',label:'Platforms'},
     ];
+    // Admin-only item
+    if(isAdmin()){
+      navItems.push('divider');
+      navItems.push({id:'admin',icon:'⚙️',label:'Admin Settings',admin:true});
+    }
     navItems.forEach(function(item){
       if(item==='divider'){sb.appendChild(div('nav-divider'));return;}
       var ni=div('nav-item'+(STATE.page===item.id?' active':''));
+      if(item.admin){ni.style.cssText='color:var(--yellow);border-left-color:'+(STATE.page===item.id?'var(--yellow)':'transparent')+';';}
       ni.innerHTML='<span class="nav-icon">'+item.icon+'</span><span>'+item.label+'</span>';
       ni.onclick=function(){navigateTo(item.id);};sb.appendChild(ni);
     });
@@ -810,6 +821,7 @@ CREATE TABLE IF NOT EXISTS tasks (
       case 'content':mainEl.appendChild(buildContent());break;
       case 'orders':mainEl.appendChild(buildOrders());break;
       case 'platforms':mainEl.appendChild(buildPlatforms());break;
+      case 'admin':if(isAdmin()){mainEl.appendChild(buildAdminPanel());}else{STATE.page='dashboard';mainEl.appendChild(buildDashboard());}break;
     }
   }
 
@@ -1319,9 +1331,117 @@ CREATE TABLE IF NOT EXISTS tasks (
     return p;
   }
 
+  // ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+  function buildAdminPanel(){
+    var p=div('panel');
+    p.innerHTML='<div class="page-title" style="color:var(--yellow);text-shadow:0 0 20px rgba(255,214,0,.3)">ADMIN SETTINGS</div><div class="page-sub">Only visible to juniorale947@gmail.com — manage database connection and users.</div>';
+
+    // DB CONNECTION SECTION
+    var dbSec=div('');
+    dbSec.innerHTML='<div class="sec-hd" style="color:var(--yellow)">🔌 DATABASE CONNECTION</div>';
+    var statusCard=div('card mb16');
+    var currentUrl=lsStr(K.URL);var currentKey=lsStr(K.KEY);
+    var connStatus=currentUrl&&currentKey?'<span style="color:var(--green)">● Connected</span>':'<span style="color:var(--red)">● Not connected</span>';
+    statusCard.innerHTML='<div class="card-title">Current Status</div><div style="display:flex;flex-direction:column;gap:8px;font-size:13px;"><div class="flex items-c gap8"><span style="color:var(--muted);min-width:60px;font-family:Space Mono,monospace;font-size:10px;">STATUS</span>'+connStatus+'</div><div class="flex items-c gap8"><span style="color:var(--muted);min-width:60px;font-family:Space Mono,monospace;font-size:10px;">URL</span><span style="color:#ccc;font-size:12px;word-break:break-all;">'+(currentUrl||'Not set')+'</span></div><div class="flex items-c gap8"><span style="color:var(--muted);min-width:60px;font-family:Space Mono,monospace;font-size:10px;">KEY</span><span style="color:#ccc;font-size:12px;font-family:Space Mono,monospace;">'+(currentKey?currentKey.substring(0,24)+'...':'Not set')+'</span></div></div>';
+    dbSec.appendChild(statusCard);
+
+    var editCard=div('card mb20');
+    editCard.innerHTML='<div class="card-title">Update Credentials</div>';
+    var urlG=div('inp-group mb12');urlG.innerHTML='<label>Supabase Project URL</label>';
+    var urlInp=inp('text','https://xxxxxxxxxxxx.supabase.co',currentUrl);urlG.appendChild(urlInp);
+    var keyG=div('inp-group mb12');keyG.innerHTML='<label>Supabase Anon / Public Key</label>';
+    var keyInp=inp('text','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',currentKey);keyG.appendChild(keyInp);
+    var dbErr=div('auth-err mb8');dbErr.style.display='none';
+    var dbOk=div('auth-ok mb8');dbOk.style.display='none';
+    var saveDbBtn=btn('💾 SAVE & RECONNECT','btn btn-green');
+    saveDbBtn.onclick=async function(){
+      var url=urlInp.value.trim(),key=keyInp.value.trim();
+      dbErr.style.display='none';dbOk.style.display='none';
+      if(!url||!key){dbErr.textContent='Both fields are required.';dbErr.style.display='block';return;}
+      saveDbBtn.disabled=true;saveDbBtn.innerHTML='<div class="spinner"></div> TESTING...';
+      try{
+        var client=window.supabase.createClient(url,key);
+        var res=await client.from('users').select('id').limit(1);
+        if(res.error&&res.error.code!=='PGRST116')throw new Error(res.error.message);
+        lsSet(K.URL,url);lsSet(K.KEY,key);
+        initSB(url,key);STATE.sbReady=true;STATE.dbStatus='connected';
+        dbOk.textContent='✅ Database reconnected successfully! New credentials saved.';dbOk.style.display='block';
+        // Refresh the status card
+        statusCard.querySelector('.card-title').nextSibling;
+      }catch(e){dbErr.textContent='Connection failed: '+e.message;dbErr.style.display='block';}
+      saveDbBtn.disabled=false;saveDbBtn.innerHTML='💾 SAVE & RECONNECT';
+    };
+    editCard.appendChild(urlG);editCard.appendChild(keyG);editCard.appendChild(dbErr);editCard.appendChild(dbOk);editCard.appendChild(saveDbBtn);
+    dbSec.appendChild(editCard);
+    p.appendChild(dbSec);
+
+    // SQL SCHEMA SECTION
+    var schemaSec=div('');
+    schemaSec.innerHTML='<div class="sec-hd" style="color:var(--yellow)">🗄️ DATABASE SCHEMA</div>';
+    var schemaCard=div('card mb20');
+    schemaCard.innerHTML='<div class="card-title">SQL — Run in Supabase SQL Editor if tables are missing</div>';
+    var schemaBlock=div('sql-block');schemaBlock.textContent=SQL_SCHEMA;
+    var copySchemaBtn=btn('COPY SQL','btn btn-ghost btn-sm mt8');
+    copySchemaBtn.onclick=function(){navigator.clipboard.writeText(SQL_SCHEMA).then(function(){copySchemaBtn.textContent='COPIED!';setTimeout(function(){copySchemaBtn.textContent='COPY SQL';},2000);});};
+    schemaCard.appendChild(schemaBlock);schemaCard.appendChild(copySchemaBtn);
+    schemaSec.appendChild(schemaCard);
+    p.appendChild(schemaSec);
+
+    // USERS SECTION
+    var usersSec=div('');
+    usersSec.innerHTML='<div class="sec-hd" style="color:var(--yellow)">👥 REGISTERED USERS</div>';
+    var usersCard=div('card mb16');
+    usersCard.innerHTML='<div class="card-title">All Accounts <span id="user-count" style="color:var(--muted)">(loading...)</span></div>';
+    var usersTable=div('tbl-wrap mt8');
+    usersTable.innerHTML='<div style="padding:16px;color:var(--muted);font-family:Space Mono,monospace;font-size:10px;text-align:center"><div class="spinner" style="margin:0 auto 8px"></div>Loading users...</div>';
+    usersCard.appendChild(usersTable);
+    usersSec.appendChild(usersCard);
+    p.appendChild(usersSec);
+
+    // Load users from Supabase
+    (async function(){
+      var sb2=getSB();
+      if(!sb2){usersTable.innerHTML='<div style="padding:16px;color:var(--muted);font-family:Space Mono,monospace;font-size:10px;text-align:center">No database connection</div>';return;}
+      try{
+        var res=await sb2.from('users').select('id,name,email,created_at').order('created_at',{ascending:false});
+        if(res.error)throw new Error(res.error.message);
+        var users=res.data||[];
+        document.getElementById('user-count').textContent='('+users.length+' total)';
+        if(!users.length){usersTable.innerHTML='<div style="padding:16px;color:var(--muted);font-family:Space Mono,monospace;font-size:10px;text-align:center">No users registered yet</div>';return;}
+        var t=document.createElement('table');
+        t.innerHTML='<thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>';
+        var tb=document.createElement('tbody');
+        users.forEach(function(u,i){
+          var tr=document.createElement('tr');
+          var isAdminUser=u.email&&u.email.toLowerCase()===ADMIN_EMAIL.toLowerCase();
+          tr.innerHTML='<td style="color:var(--muted);font-family:Space Mono,monospace;font-size:10px">'+(i+1)+'</td><td style="font-weight:600">'+escape(u.name||'—')+'</td><td style="font-family:Space Mono,monospace;font-size:10px;color:#ccc">'+escape(u.email||'')+'</td><td>'+(isAdminUser?'<span style="font-family:Space Mono,monospace;font-size:8px;background:rgba(255,214,0,.15);border:1px solid rgba(255,214,0,.3);color:var(--yellow);padding:2px 7px;border-radius:2px;letter-spacing:1px">ADMIN</span>':'<span style="font-family:Space Mono,monospace;font-size:8px;background:rgba(255,255,255,.06);color:var(--muted);padding:2px 7px;border-radius:2px;letter-spacing:1px">USER</span>')+'</td><td style="font-family:Space Mono,monospace;font-size:10px;color:var(--muted)">'+(u.created_at?new Date(u.created_at).toLocaleDateString():'—')+'</td>';
+          tb.appendChild(tr);
+        });
+        t.appendChild(tb);usersTable.innerHTML='';usersTable.appendChild(t);
+      }catch(e){usersTable.innerHTML='<div style="padding:16px;color:var(--red);font-size:12px">Error loading users: '+escape(e.message)+'</div>';}
+    })();
+
+    // DANGER ZONE
+    var dangerSec=div('');
+    dangerSec.innerHTML='<div class="sec-hd" style="color:var(--red)">⚠️ DANGER ZONE</div>';
+    var dangerCard=div('card');dangerCard.style.borderColor='rgba(255,61,0,.25)';
+    dangerCard.innerHTML='<div class="card-title" style="color:var(--red)">Clear Local Storage</div><div style="font-size:12px;color:var(--muted2);margin-bottom:12px;line-height:1.6">This clears the saved Supabase credentials and session from this browser only. You will be taken to the login screen. The database itself is NOT affected.</div>';
+    var clearBtn=btn('🗑️ CLEAR THIS BROWSER\'S STORAGE','btn btn-red btn-sm');
+    clearBtn.onclick=function(){
+      if(!confirm('Are you sure? This will log you out and remove saved credentials from this browser.'))return;
+      try{localStorage.clear();}catch(e){}
+      location.reload();
+    };
+    dangerCard.appendChild(clearBtn);dangerSec.appendChild(dangerCard);
+    p.appendChild(dangerSec);
+
+    return p;
+  }
+
   // ── BOOT ──────────────────────────────────────────────────────────────────────
   function boot(){
     var url=lsStr(K.URL),key=lsStr(K.KEY);
+    // Always try to init Supabase if credentials exist in storage
     if(url&&key){initSB(url,key);STATE.sbReady=true;STATE.dbStatus='connected';}
     var ts=ls(K.TIMER);if(!ts){ts=Date.now();lsSet(K.TIMER,ts);}STATE.timerStart=ts;
     var session=ls(K.SESSION);
@@ -1329,9 +1449,9 @@ CREATE TABLE IF NOT EXISTS tasks (
       STATE.user=session;
       loadUserData(session.userId).then(function(){if(STATE.step==='app')renderAppContent();});
       STATE.step='app';render();
-    } else if(!url){
-      STATE.step='dbsetup';render();
     } else {
+      // Always go straight to auth — DB setup page is GONE for regular users
+      // Admin can access DB settings from their sidebar after logging in
       STATE.step='auth';render();
     }
   }
